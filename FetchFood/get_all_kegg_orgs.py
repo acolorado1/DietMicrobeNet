@@ -1,5 +1,7 @@
 import streamlit as st
 import requests
+import os
+import signal
 
 # this code was written with the help of chatGPT 
 def fetch_kegg_organisms():
@@ -16,7 +18,6 @@ def fetch_kegg_organisms():
         organisms = []
         for line in data:
             parts = line.split("\t")
-            print(parts)
             if len(parts) == 4:
                 t_number, code, scientific_name, taxonomy = parts
                 organisms.append((code, scientific_name, taxonomy))
@@ -58,7 +59,7 @@ with st.spinner("Fetching KEGG organism data..."):
         st.stop()
 
 # Search bar
-query = st.text_input("Enter an organism name to search (scientific or common):", "")
+query = st.text_input("Enter an organism name to search (scientific or common) - DO NOT ADD A SPACE AT THE END:", "")
 
 # Results display
 if query:
@@ -66,7 +67,7 @@ if query:
     if matches:
         st.write(f"Found {len(matches)} result(s):")
         for match in matches:
-            st.write(f"- **Code**: `{match[0]}` | **Scientific Name**: *{match[1]}* | **Common Name**: {match[2]}")
+            st.write(f"- **Code**: `{match[0]}` | **Scientific Name**: *{match[1]}* | **Taxonomy**: {match[2]}")
     else:
         st.write("No matching organisms found. Please try again.")
 
@@ -74,3 +75,11 @@ if query:
 if st.checkbox("Show all KEGG organism codes"):
     codes = [org[0] for org in organisms]
     st.write(", ".join(codes))
+
+# put a kill button so user can close application easily 
+st.write("""
+**Once you're done hit the *Stop Server* button wait 5 seconds close the tab**
+""")
+if st.button("Stop Server"):
+    st.warning("Stopping the Streamlit server...")
+    os.kill(os.getpid(), signal.SIGTERM)
