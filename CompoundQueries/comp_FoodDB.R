@@ -23,8 +23,6 @@ args <- parser$parse_args()
 #' @param output_path file path for KEGG compounds
 #'
 #' @return file with a list of KEGG Compounds 
-#'
-#' @examples
 #' 
 get_diet_fooDB_compounds <- function(diet_df, 
                                      content_df, 
