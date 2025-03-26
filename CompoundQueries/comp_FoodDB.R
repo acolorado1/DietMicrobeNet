@@ -1,5 +1,5 @@
 # load necessary packages 
-packages <- c("readr", "dplyr", "argparse")
+packages <- c("readr", "dplyr", "argparse", "tidyr")
 for (package in packages) {
   if(!require(package, character.only = T)){
     install.packages(package)
@@ -13,6 +13,7 @@ parser$add_argument('--diet_file', help = "CSV file containing food items")
 parser$add_argument('--content_file', help = 'CSV file containing content info on food')
 parser$add_argument('--ExDes_file', help = 'CSV file containing external descriptors on compounds')
 parser$add_argument('--output_file', help = 'file path for output')
+parser$add_argument('--meta_o_file', help = 'file path for compound metadata output')
 args <- parser$parse_args()
 
 #' From foods found in FooDB get list of KEGG compounds found in their collective metabolomes
@@ -21,13 +22,15 @@ args <- parser$parse_args()
 #' @param content_df content CSV  from FooDB
 #' @param external_descriptor_df CompoundExternalDescriptor CSV from FooDB
 #' @param output_path file path for KEGG compounds
+#' @param meta_out_path output path for metadata file on compounds
 #'
 #' @return file with a list of KEGG Compounds 
 #' 
 get_diet_fooDB_compounds <- function(diet_df, 
                                      content_df, 
                                      external_descriptor_df, 
-                                     output_path){ 
+                                     output_path, 
+                                     meta_out_path){ 
   
   # load in data 
   foods <- read_csv(diet_df)
@@ -49,7 +52,16 @@ get_diet_fooDB_compounds <- function(diet_df,
 
   # get only external descriptors that are KEGG related
   comp_KEGG <- unique(subset(extDes, grepl("^C[0-9]{5}$", external_id)))
-
+  
+  # create a metadata about the compounds 
+  meta <- food_content %>% 
+    select(source_id, food_id, orig_food_common_name) %>% 
+    rename_with(~c('compound_id', 'food_id', 'common_name'),
+                c(source_id, food_id, orig_food_common_name)) %>% 
+    left_join(comp_KEGG, by = 'compound_id') %>% 
+    drop_na(external_id)
+  
+  write.csv(meta, file = meta_out_path, row.names = F)
   write.table(comp_KEGG$external_id, output_path, row.names = F, sep = '\n', col.names = F, quote = F)
 }
 
@@ -57,4 +69,6 @@ get_diet_fooDB_compounds <- function(diet_df,
 get_diet_fooDB_compounds(diet_df = args$diet_file,
                         content_df = args$content_file,
                         external_descriptor_df = args$ExDes_file,
-                        output_path = args$output_file)
+                        output_path = args$output_file, 
+                        meta_out_path = args$meta_o_file)
+
