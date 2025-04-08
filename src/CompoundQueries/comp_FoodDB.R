@@ -42,6 +42,9 @@ get_diet_fooDB_compounds <- function(diet_df,
 
   # Get compound IDs, I believe these are labeled as the Source IDs in the contents file
   food_content <- Content[Content$food_id %in% ids, ]
+  food_content <- food_content %>% 
+    select(food_id, orig_food_common_name, source_id)
+  
   comp_ids <- unique(food_content$source_id)
 
   # get external descriptors
@@ -54,12 +57,16 @@ get_diet_fooDB_compounds <- function(diet_df,
   comp_KEGG <- unique(subset(extDes, grepl("^C[0-9]{5}$", external_id)))
   
   # create a metadata about the compounds 
+  colnames(foods) <- c("food_id", "name", "name_scientific")
   meta <- food_content %>% 
     select(source_id, food_id, orig_food_common_name) %>% 
     rename_with(~c('compound_id', 'food_id', 'common_name'),
                 c(source_id, food_id, orig_food_common_name)) %>% 
     left_join(comp_KEGG, by = 'compound_id') %>% 
+    left_join(foods, by = 'food_id') %>% 
     drop_na(external_id)
+  
+  colnames(meta) <- c("foodb_compound_id", "food_id", "org_food", "kegg_id", "name", "name_scientific")
   
   write.csv(meta, file = meta_out_path, row.names = F)
   write.table(comp_KEGG$external_id, output_path, row.names = F, sep = '\n', col.names = F, quote = F)
@@ -71,4 +78,3 @@ get_diet_fooDB_compounds(diet_df = args$diet_file,
                         external_descriptor_df = args$ExDes_file,
                         output_path = args$output_file, 
                         meta_out_path = args$meta_o_file)
-
