@@ -8,6 +8,17 @@ dependencies:
   - pip
   - pandas
   - r-base
+  - r-rmarkdown
+  - r-dplyr
+  - r-ggplot2
+  - r-readr
+  - r-cowplot
+  - r-thematic
+  - r-tidyr
+  - r-tibble
+  - r-plotly
   - streamlit
+  - pandoc
   - pip:
     - AMON-bio
+    - lxml
