@@ -1,6 +1,8 @@
 ---
 title: "Summary of Food Associated Compounds"
 date: "`r Sys.Date()`"
+params:
+  food_file: "default.csv"
 ---
 
 ```{css, echo=FALSE}
@@ -17,12 +19,16 @@ options(scipen = 999)
 
 ```{r}
 # load necessary packages 
-packages <- c("dplyr", "ggplot2", "readr", "cowplot", "thematic", "tidyr", 
-              "tibble", "plotly")
+# Set CRAN mirror for non-interactive installation
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+packages <- c("dplyr", "ggplot2", "readr", "cowplot", "thematic", "tidyr",
+              "tibble", "plotly", "rmarkdown")
+
 for (package in packages) {
-  if(!require(package, character.only = T)){
+  if (!require(package, character.only = TRUE)) {
     install.packages(package)
-    library(package)
+    library(package, character.only = TRUE)
   }
 }
 ```
@@ -30,7 +36,8 @@ for (package in packages) {
 ```{r}
 # get data 
 hmdb <- read_csv("../../Data/hmdb.csv")
-meta <- read_csv("../../Data/test/compound_meta/foodb_meta.csv")
+meta <- read_csv(params$food_file)
+#meta <- read_csv("../../Data/test/compound_meta/foodb_meta.csv")
 ```
 
 FooDB is a unique database containing the findings of many LC-MS experiments aimed at finding compounds within different food items. It is important to understand what these food compounds are, and how each food is being characterized. Additionally, for each food item there will be multiple experiments assigned to it. For example, an *Apple* will be associated with compounds from experiments on multiple varieties of apples as well as apple byproducts like apple sauce.
