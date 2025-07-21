@@ -1,0 +1,249 @@
+---
+title: "Summary of Food Associated Compounds"
+date: "`r Sys.Date()`"
+---
+
+```{css, echo=FALSE}
+h1, h2, h3, h4 {
+  text-align: center;
+}
+```
+
+```{r, setup, echo = F}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = T, echo = F, 
+                      fig.align = "center")
+options(scipen = 999)
+```
+
+```{r}
+# load necessary packages 
+packages <- c("dplyr", "ggplot2", "readr", "cowplot", "thematic", "tidyr", 
+              "tibble", "plotly")
+for (package in packages) {
+  if(!require(package, character.only = T)){
+    install.packages(package)
+    library(package)
+  }
+}
+```
+
+```{r}
+# get data 
+hmdb <- read_csv("../../Data/hmdb.csv")
+meta <- read_csv("../../Data/test/compound_meta/foodb_meta.csv")
+```
+
+FooDB is a unique database containing the findings of many LC-MS experiments aimed at finding compounds within different food items. It is important to understand what these food compounds are, and how each food is being characterized. Additionally, for each food item there will be multiple experiments assigned to it. For example, an *Apple* will be associated with compounds from experiments on multiple varieties of apples as well as apple byproducts like apple sauce.
+
+**Disclaimer**: Version of FooDB used is the Pre-release 1.0 and is the FooDB CSV file added April 7, 2020. Version 5.0 of HMDB All Metabolites XML file added November 17, 2021. 
+
+```{r}
+# pi chart of all compounds 
+meta %>% 
+  select(name, kegg_id) %>% 
+  group_by(name) %>% 
+  count(name) %>% 
+  ggplot(aes(x = "",y = n, fill = name)) + 
+    geom_bar(stat="identity", width=1) +
+    coord_polar("y", start=0) +
+    geom_text(aes(label = n),
+              position = position_stack(vjust = 0.5)) +
+    theme_void() +
+    theme(legend.position = "bottom", 
+          plot.title = element_text(hjust = 0.5), 
+          legend.title = element_blank()) +
+    ggtitle("Total Number of Compounds Per\nFood Item (Includes Duplicates)") -> A
+
+# pi chart of all non duplicated columns
+meta %>% 
+  select(name, kegg_id) %>% 
+  group_by(name) %>% 
+  distinct() %>% 
+  count(name) %>% 
+  ggplot(aes(x = "",y = n, fill = name)) + 
+    geom_bar(stat="identity", width=1) +
+    coord_polar("y", start=0) +
+    geom_text(aes(label = n),
+              position = position_stack(vjust = 0.5)) +
+    theme_void() +
+    theme(legend.position = "bottom", 
+          plot.title = element_text(hjust = 0.5), 
+          legend.title = element_blank()) +
+    ggtitle("Number of Compounds Per \nFood Item (no Duplicates)") -> B
+
+cowplot::plot_grid(A, B)
+```
+
+## Detailed Results {.tabset}
+
+### Food Similarity
+
+```{r}
+# Summarize compounds and their group status
+compound_summary <- meta %>%
+  group_by(kegg_id) %>%
+  summarise(
+    groups = list(unique(name)),
+    groups_count = n_distinct(name),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    status = ifelse(groups_count == 1, "unique", "shared")
+  )
+
+# Count shared compounds (optional, if needed)
+shared_count <- compound_summary %>%
+  filter(status == "shared") %>%
+  summarise(shared_count = n())
+
+# Count unique compounds for each group
+compound_summary %>%
+  filter(status == "unique") %>%
+  unnest(groups) %>%  # Expand the group list
+  count(groups, name = "unique_count") -> unique_compounds 
+
+# plot unique compounds and summary stats 
+  ggplot(unique_compounds, aes(x = reorder(groups, unique_count), y = unique_count)) + 
+    geom_bar(stat = "identity") + 
+    labs(x = "Food Item", 
+         y = "Number of Compounds Unique to Food Item") + 
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    annotate("text", 
+             x = 1, 
+             y = max(unique_compounds$unique_count) - median(unique_compounds$unique_count) , 
+             label = paste0("Numer of Shared Compounds: ", shared_count$shared_count,
+                            "\n\nThe Following Statistics are on the \nNumber of Unique Compounds",
+                            "\nMean \u00B1 SD: ", round(mean(unique_compounds$unique_count), 2), 
+                                "\u00B1", round(sd(unique_compounds$unique_count), 2), 
+                            "\nMedian: ", round(median(unique_compounds$unique_count), 2), 
+                            "\nRange: ", round(range(unique_compounds$unique_count)[1], 2), "-", 
+                                round(range(unique_compounds$unique_count)[2], 2)
+                            )
+             )
+```
+
+### Taxonomic Classification of Compounds 
+
+Points are colored by the number of compounds found in that taxonomic classification. 
+
+```{r}
+meta %>% 
+  select(name, kegg_id) %>% 
+  group_by(name) %>% 
+  distinct() %>% 
+  left_join(hmdb, by = "kegg_id", 
+            relationship = "many-to-many") -> joined
+
+joined %>% 
+  count(name, taxonomy_super_class) %>% 
+  ggplot(aes(y=taxonomy_super_class, x=name)) +
+    geom_point(aes(color = n), size = 4) + 
+    scale_color_gradient(low = "yellow", high = "purple4") +
+    theme_bw() + 
+    theme(legend.title = element_blank()) + 
+    xlab("name") + 
+    ylab("Taxonomy Super Class ")
+
+joined %>% 
+  count(name, taxonomy_class) %>% 
+  ggplot(aes(y=taxonomy_class, x=name)) +
+    geom_point(aes(color = n), size = 4) + 
+    scale_color_gradient(low = "yellow", high = "purple4") +
+    theme_bw() + 
+    theme(legend.title = element_blank()) + 
+    xlab("name") + 
+    ylab("Taxonomy Class ")
+```
+
+### Compound Frequency per Food Item
+
+Here each compound is colored by the number of occurences it was found in LC-MS experiments related to that food item. 
+
+```{r, fig.width=20, fig.height=60}
+# plot number of shared compounds per food item
+meta %>% 
+  select(name, kegg_id) %>% 
+  count(name, kegg_id) %>% 
+  group_by(name) %>% 
+  mutate(Percentage = round(100*(n/sum(n)),2)) %>% 
+  ungroup() %>% 
+  mutate(bin = cut_number(Percentage, n = 3)) %>% 
+  left_join(hmdb, by = "kegg_id") -> freq_comp
+
+ggplot(freq_comp, aes(x = name, y = kegg_id)) + 
+  geom_point(aes(color = bin), size = 4) + 
+  theme_bw(base_size = 25) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("") + 
+  ylab("KEGG compound ID") + 
+  labs(color = "Percentage") + 
+  facet_wrap(~taxonomy_super_class, scales = "free", 
+             labeller = label_wrap_gen(15))
+    
+```
+
+## Diet Meta-Analysis 
+
+<center>
+Identifying similarity and dissimilarity between food items.
+```{r}
+# make a function to calculte jaccard similarity between food items
+jaccard_similarity <- function(food1, food2){ 
+  intersection <- length(intersect(food1, food2))
+  union <- length(food1) + length(food2) - intersection
+  return(intersection/union)
+}
+
+# get list of food items
+food_items <- unique(meta$name)
+
+# for each pair of food items calculate jaccard similarity and create a list 
+jaccard_score <- c()
+for(food1 in food_items){
+  for (food2 in food_items) {
+    
+    # get list of unique compounds for food1
+    food1_df <- meta %>%
+      select(name, kegg_id) %>%
+      filter(name == food1) 
+    food1_compounds <- unique(food1_df$kegg_id)
+      
+    # get list of unique compounds for food2
+    food2_df <- meta %>%
+      select(name, kegg_id) %>%
+      filter(name == food2)
+    food2_compounds <- unique(food2_df$kegg_id)
+    
+    # calculate score and add to list 
+    score <- jaccard_similarity(food1_compounds, food2_compounds)
+    jaccard_score <- c(jaccard_score, c(score))
+  }
+}
+
+# create matrix 
+jaccard_matrix <- matrix(
+  jaccard_score, 
+  nrow = length(food_items), 
+  ncol = length(food_items), 
+)
+colnames(jaccard_matrix) <- food_items
+rownames(jaccard_matrix) <- food_items
+
+# create a long format for matrix
+jaccard_long <- as.data.frame(jaccard_matrix) %>% 
+  rownames_to_column(var = "Row") %>% 
+  pivot_longer(cols = -Row, names_to = "Column", values_to = "Value")
+
+# visualize matrix
+ggplot(jaccard_long, aes(x = Column, y = Row, fill = Value)) +
+  geom_tile() + 
+  scale_fill_gradient(low = "lightblue", high = "darkblue") + 
+  labs(title = "Jaccard Matrix Heatmap", x = " ", y = " ", fill = "Simiarity Score") +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), 
+        plot.title = element_text(hjust = 0.5)) -> p
+
+plotly::ggplotly(p)
+```
+<\center>
