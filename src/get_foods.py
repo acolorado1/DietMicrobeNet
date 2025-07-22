@@ -32,7 +32,9 @@ st.title("Whole Genome and/or Metabolome Representation of Diet")
 
 st.write("""
 This app allows you to customize a set of food items using KEGG organisms or FooDB (food metabolomes) that can represent a patients diet. 
-Dataframes will be created based on user selections which can be downloaded as a CSV file.
+Dataframes will be created based on user selections which can be downloaded as a CSV file. 
+         
+Disclaimer: While KEGG is kept up-to-date, version 1.0 of FooDB is used from the CSV file added April7, 2020.
 """)
 
 st.header("KEGG Organism Selection")
@@ -53,59 +55,91 @@ kegg_df = pd.DataFrame(columns=["Code", "ScientificName", "Taxonomy"])
 # Filter the DataFrame based on selected organism names
 kegg_df = organism_df[organism_df["ScientificName"].isin(selected_organisms)]
 
-# Display the DataFrame with the selected organisms
+# Display the DataFrame with the selected organisms and allow user input
 if not kegg_df.empty:
-    st.write("### Selected Organism DataFrame", kegg_df)
-else:
-    st.write("No organisms selected.")
+    st.write("### Enter values (between 0 and 1) for each selected organism")
 
-# Convert the DataFrame to CSV for download
-csv = kegg_df.to_csv(index=False)
+    new_column_values = []
+    for index, row in kegg_df.iterrows():
+        value = st.number_input(
+            label=f"Enter value for {row['ScientificName']} ({row['Code']})",
+            min_value=0.0,
+            max_value=1.0,
+            step=0.01,
+            key=f"input_{index}"
+        )
+        new_column_values.append(value)
 
-# Provide the download button
-if not kegg_df.empty:
+    # Add the new user input column
+    kegg_df["UserInputValue"] = new_column_values
+
+    # Display updated DataFrame
+    st.write("### Selected Organism DataFrame with Input", kegg_df)
+
+    # Enable download
+    csv = kegg_df.to_csv(index=False)
     st.download_button(
         label="Download Selected Organisms DataFrame as CSV",
         data=csv,
         file_name="kegg_organisms_dataframe.csv",
-        mime="text/csv"
+        mime="text/csv", 
+        key="download_keeg"
     )
+else:
+    st.write("No organisms selected.")
 
 # start the FooDB selection
 st.header("FooDB Food Item Selection")
 
-######################################### THIS IS A LOCAL DIRECTORY
-food_df = pd.read_csv('/Users/burkhang/Code_Projs/DietMicrobeNet/Data/food.csv')
+# Load the food CSV (adjust the path if needed) ####################Local Directory 
+#food_df = pd.read_csv('/Users/burkhang/Code_Projs/DietMicrobeNet/Data/food.csv')
 
-# subset to columns needed 
+# Get the current directory of the script
+script_dir = os.path.dirname(__file__)
+file_path = os.path.join(script_dir, '..', 'data', 'food.csv')
+
+# Load CSV
+food_df = pd.read_csv(file_path)
+
+# Subset to relevant columns
 food_df = food_df[['id', 'name', 'name_scientific']]
 
 # Allow the user to select multiple foods
 selected_foods = st.multiselect("Select Food Item", food_df['name'].tolist())
 
-# Create an empty DataFrame to hold the selected foods' data
-foodb_df = pd.DataFrame(columns=["id", "name", "name_scientific"])
-
 # Filter the DataFrame to include only selected foods
 foodb_df = food_df[food_df["name"].isin(selected_foods)]
 
-# Display the DataFrame with the selected organisms
+# Display the DataFrame with user input column
 if not foodb_df.empty:
-    st.write("### Selected Food Item DataFrame", foodb_df)
-else:
-    st.write("No foods selected.")
+    st.write("### Enter values (between 0 and 1) for each selected food")
 
-# Convert the DataFrame to CSV for download
-csv = foodb_df.to_csv(index=False)
+    food_values = []
+    for index, row in foodb_df.iterrows():
+        value = st.number_input(
+            label=f"Enter value for {row['name']} ({row['id']})",
+            min_value=0.0,
+            max_value=1.0,
+            step=0.01,
+            key=f"food_input_{index}"
+        )
+        food_values.append(value)
 
-# Provide the download button
-if not foodb_df.empty:
+    foodb_df["UserInputValue"] = food_values
+
+    st.write("### Selected Food Item DataFrame with Input", foodb_df)
+
+    csv = foodb_df.to_csv(index=False)
+
     st.download_button(
         label="Download Selected Food Items DataFrame as CSV",
         data=csv,
         file_name="foodb_foods_dataframe.csv",
-        mime="text/csv"
+        mime="text/csv",
+        key="download_foodb"
     )
+else:
+    st.write("No foods selected.")
 
 # put a kill button so user can close application easily 
 st.write("""
