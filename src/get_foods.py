@@ -57,15 +57,15 @@ kegg_df = organism_df[organism_df["ScientificName"].isin(selected_organisms)]
 
 # Display the DataFrame with the selected organisms and allow user input
 if not kegg_df.empty:
-    st.write("### Enter values (between 0 and 1) for each selected organism")
+    st.write("### Enter values (between 1 and 100) for each selected organism")
 
     new_column_values = []
     for index, row in kegg_df.iterrows():
         value = st.number_input(
             label=f"Enter value for {row['ScientificName']} ({row['Code']})",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.01,
+            min_value=1,
+            max_value=100,
+            step=1,
             key=f"input_{index}"
         )
         new_column_values.append(value)
@@ -112,15 +112,15 @@ foodb_df = food_df[food_df["name"].isin(selected_foods)]
 
 # Display the DataFrame with user input column
 if not foodb_df.empty:
-    st.write("### Enter values (between 0 and 1) for each selected food")
+    st.write("### Enter values (between 1 and 100) for each selected food")
 
     food_values = []
     for index, row in foodb_df.iterrows():
         value = st.number_input(
             label=f"Enter value for {row['name']} ({row['id']})",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.01,
+            min_value=1,
+            max_value=100,
+            step=1,
             key=f"food_input_{index}"
         )
         food_values.append(value)
