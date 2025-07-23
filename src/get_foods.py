@@ -71,7 +71,7 @@ if not kegg_df.empty:
         new_column_values.append(value)
 
     # Add the new user input column
-    kegg_df["UserInputValue"] = new_column_values
+    kegg_df["food_frequency"] = new_column_values
 
     # Display updated DataFrame
     st.write("### Selected Organism DataFrame with Input", kegg_df)
