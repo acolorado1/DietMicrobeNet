@@ -17,6 +17,7 @@ dependencies:
   - r-tidyr
   - r-tibble
   - r-plotly
+  - r-argparse
   - streamlit
   - pandoc
   - pip:
