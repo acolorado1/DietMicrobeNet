@@ -57,7 +57,7 @@ get_diet_fooDB_compounds <- function(diet_df,
   comp_KEGG <- unique(subset(extDes, grepl("^C[0-9]{5}$", external_id)))
   
   # create a metadata about the compounds 
-  colnames(foods) <- c("food_id", "name", "name_scientific")
+  colnames(foods) <- c("food_id", "name", "name_scientific", "food_frequency")
   meta <- food_content %>% 
     select(source_id, food_id, orig_food_common_name) %>% 
     rename_with(~c('compound_id', 'food_id', 'common_name'),
@@ -66,10 +66,10 @@ get_diet_fooDB_compounds <- function(diet_df,
     left_join(foods, by = 'food_id') %>% 
     drop_na(external_id)
   
-  colnames(meta) <- c("foodb_compound_id", "food_id", "org_food", "kegg_id", "name", "name_scientific")
+  colnames(meta) <- c("foodb_compound_id", "food_id", "org_food", "kegg_id", "name", "name_scientific", "food_frequency")
   
   write.csv(meta, file = meta_out_path, row.names = F)
-  write.table(comp_KEGG$external_id, output_path, row.names = F, sep = '\n', col.names = F, quote = F)
+  write.table(meta$kegg_id, output_path, row.names = F, sep = '\n', col.names = F, quote = F)
 }
 
 # call function
@@ -78,3 +78,12 @@ get_diet_fooDB_compounds(diet_df = args$diet_file,
                         external_descriptor_df = args$ExDes_file,
                         output_path = args$output_file, 
                         meta_out_path = args$meta_o_file)
+
+# example to run in the terminal 
+# can probably get rid of the output_file this is confusing and only used for AMON which we don't need in this case 
+# Rscript src/Metabolome_proc/comp_FoodDB.R \
+# > --diet_file "Data/test/app_ouput/foodb_foods_dataframe.csv" \
+# > --content_file "Data/Content.csv" \
+# > --ExDes_file "Data/CompoundExternalDescriptor.csv" \
+# > --output_file "Data/test/compound_network/foodb_comps_freq.txt" \
+# > --meta_o_file "Data/test/compound_meta/foodb_meta_freq.csv"
