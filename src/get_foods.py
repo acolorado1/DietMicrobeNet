@@ -125,7 +125,7 @@ if not foodb_df.empty:
         )
         food_values.append(value)
 
-    foodb_df["UserInputValue"] = food_values
+    foodb_df["food_frequency"] = food_values
 
     st.write("### Selected Food Item DataFrame with Input", foodb_df)
 
