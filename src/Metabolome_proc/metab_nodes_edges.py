@@ -48,11 +48,11 @@ def node_df(microbome_compounds:str, food_compounds:str):
     food_freq_dict = {}
 
     # get all foods associated with compound and frequency of consumption
-    for compound in all_comps:
+    for compound in all_comps: 
 
         # if associated with a food
         if compound in f_comps: 
-            
+
             # subset food dataframe by compound 
             comp_df = f_comp_df[f_comp_df['kegg_id'] == compound]
 
@@ -65,7 +65,6 @@ def node_df(microbome_compounds:str, food_compounds:str):
             if freq > 100:
                 raise ValueError(f"The frequency of consumption is too high: {freq}")
 
-            
             # add to dictionaries 
             food_item_dict[compound] = foods
             food_freq_dict[compound] = int(freq)
@@ -75,14 +74,109 @@ def node_df(microbome_compounds:str, food_compounds:str):
     df_food = pd.DataFrame(food_item_dict.items(), columns=['c_id', 'assoc_food'])
     df_freq = pd.DataFrame(food_freq_dict.items(), columns=['c_id', 'freq'])
 
-    # Merge them on 'c_id'
-    df_combined = df_origin.merge(df_food, on='c_id').merge(df_freq, on='c_id')
+    return df_origin.merge(df_food, on='c_id').merge(df_freq, on='c_id')
+
+# for each KO
+# TODO: keep track of associated species 
+# TODO: integrate edge weight with number of reads (normalized)
+# TODO: make edge dataframe with the columns
+# KO
+# rxn
+# taxonomy 
+# abundance 
+
+def edge_df(rn_json:str, ko_meta:str, nodes_df):
+    """creates a pandas dataframe containing edge information for graph visualization
+
+    Args:
+        rn_json (str): file path to AMON rn_dict.json file 
+        ko_meta (str): file path to csv containing KO, taxonomy, and abundance information
+        nodes_df (pandas dataframe): output of nodes_df function  
+
+    Returns: 
+        pandas dataframe: dataframe containing KO information including reaction, associated 
+        taxonomy, and abundance RPKs  
+    """
+    # read in rn json 
+    with open(rn_json, 'r') as rjson: 
+        rxns = json.load(rjson)
+
+    # read in ko metadata and clean data if necessary 
+    meta = pd.read_csv(ko_meta)
+    meta_clean = meta.dropna(subset=['KO', 'taxonomy']) # remove Nan
+    meta_clean['taxonomy'] = meta_clean['taxonomy'].astype(str) # convert taxonomy to string 
+    print('NAs have been removed from KO metadata')
+
+    # create dict of KOs with abundance 
+    ko_abundance_sum = meta_clean.groupby('KO', as_index=False).sum('Abundance_RPKs')
+    ko_abundance_dict = ko_abundance_sum.set_index('KO')['Abundance_RPKs'].to_dict()
+
+    # create dict of KOs with list of associated organisms -> removed duplicates and sorted alphabetically
+    ko_orgs_df = meta_clean.groupby('KO')['taxonomy'].agg(lambda x: ', '.join(sorted(set(x)))).reset_index()
+    ko_orgs_dict = ko_orgs_df.set_index('KO')['taxonomy'].to_dict()
+
+    # get list of nodes 
+    compounds = nodes_df['c_id'].tolist()
+
+    # dictionary to be converted into pandas dataframe 
+    edges_dict = {'compound1': [], 
+                  'compound2': [],
+                  'reaction': [],
+                  'KOs': [], 
+                  'organisms': [], 
+                  'abundance_RPKs': []}
+
+    # each key is a reaction id from KEGG
+    for rxn in rxns.keys():
+        rn_info_dict = rxns[rxn]
+        equation = rn_info_dict['EQUATION']
+
+        # get compound from reactant side of equation
+        for reactant in equation[0]: 
+
+            # get compound from product side of equation
+            for product in equation[1]: 
+
+                # ensure both product and reactant are nodes
+                if reactant in compounds and product in compounds: 
+                    edges_dict['compound1'].append(reactant)
+                    edges_dict['compound2'].append(product)
+                    edges_dict['reaction'].append(rxn)
+
+                    # get KOs 
+                    orthology = rn_info_dict['ORTHOLOGY']
+                    KOs = []
+                    KOs.extend(orthology[index][0] for index in range(0,len(orthology)))
+
+                    # for each ko get all organisms and total abundance 
+                    organisms = []
+                    abundance = 0 
+                    for KO in KOs: 
+                        if KO in ko_orgs_dict.keys():
+                            organisms.append(ko_orgs_dict[KO])
+                        if KO in ko_abundance_dict.keys():
+                            abundance += ko_abundance_dict[KO]
+
+                    # make sure there are no duplicate organisms 
+                    organisms = list(set(organisms))
+
+                    # add to edges dictionary 
+                    edges_dict['KOs'].append(','.join(KOs))
+                    edges_dict['organisms'].append(organisms)
+                    edges_dict['abundance_RPKs'].append(abundance)
+
+    # return pandas dataframe of edge info 
+    return pd.DataFrame(data = edges_dict) 
 
 
-    print(df_combined.head())
- 
 
 # Files needed for node creation 
-#m = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/AMON_metab_output/co_dict.json' #list of microbe compounds 
-#f = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/compound_meta/foodb_meta_freq.csv' # list of food compounds 
-#node_df(m, f)
+m = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/AMON_metab_output/co_dict.json' #list of microbe compounds 
+f = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/compound_meta/foodb_meta_freq.csv' # list of food compounds 
+nodes = node_df(m, f)
+
+# files needed for each creation 
+#kos = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/AMON_metab_output/ko_dict.json' ###### might not be necessary
+rxns = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/AMON_metab_output/rn_dict.json'
+meta = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/ko_taxonomy_abundance.csv'
+edge_df(rn_json=rxns, ko_meta=meta, nodes_df=nodes)
