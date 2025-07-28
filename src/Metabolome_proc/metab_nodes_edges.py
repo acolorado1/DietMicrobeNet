@@ -1,12 +1,13 @@
 import json
 import pandas as pd
 
-def node_df(microbome_compounds:str, food_compounds:str):
+def node_df(microbome_compounds:str, food_compounds:str, n_weights:bool):
     """create node dataframe used as input for graph visualization 
 
     Args:
         microbome_compounds (str): path to compound json file from AMON output 
         food_compounds (str): path to CSV output from comp_FoodDB.py 
+        n_weights (bool): true or false if food frequency is to be used 
     
     Returns: 
         pandas dataframe: dataframe containing compound information including compound
@@ -58,16 +59,19 @@ def node_df(microbome_compounds:str, food_compounds:str):
 
             # get a list of unique food items 
             foods = list(set(comp_df['name']))
+            food_item_dict[compound] = foods
 
             # sum frequency of consumption and make sure there is no value over 100 
-            freq_sub = comp_df.drop_duplicates(subset=['name'])
-            freq = freq_sub['food_frequency'].sum()
-            if freq > 100:
-                raise ValueError(f"The frequency of consumption is too high: {freq}")
-
-            # add to dictionaries 
-            food_item_dict[compound] = foods
-            food_freq_dict[compound] = int(freq)
+            if n_weights: # if weights are being used 
+                freq_sub = comp_df.drop_duplicates(subset=['name'])
+                freq = freq_sub['food_frequency'].sum()
+                if freq > 100:
+                    raise ValueError(f"The frequency of consumption is too high: {freq}")
+                food_freq_dict[compound] = int(freq)
+            else:
+                food_freq_dict[compound] = pd.NA # default no weights is NA 
+            
+            
 
     # Convert each dict to a DataFrame
     df_origin = pd.DataFrame(origin_dict.items(), columns=['c_id', 'origin'])
@@ -76,22 +80,14 @@ def node_df(microbome_compounds:str, food_compounds:str):
 
     return df_origin.merge(df_food, on='c_id').merge(df_freq, on='c_id')
 
-# for each KO
-# TODO: keep track of associated species 
-# TODO: integrate edge weight with number of reads (normalized)
-# TODO: make edge dataframe with the columns
-# KO
-# rxn
-# taxonomy 
-# abundance 
-
-def edge_df(rn_json:str, ko_meta:str, nodes_df):
+def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool):
     """creates a pandas dataframe containing edge information for graph visualization
 
     Args:
         rn_json (str): file path to AMON rn_dict.json file 
         ko_meta (str): file path to csv containing KO, taxonomy, and abundance information
         nodes_df (pandas dataframe): output of nodes_df function  
+        e_weights (bool): true or false if edge weights are to be used 
 
     Returns: 
         pandas dataframe: dataframe containing KO information including reaction, associated 
@@ -103,7 +99,7 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df):
 
     # read in ko metadata and clean data if necessary 
     meta = pd.read_csv(ko_meta)
-    meta_clean = meta.dropna(subset=['KO', 'taxonomy']) # remove Nan
+    meta_clean = meta.dropna(subset=['KO', 'taxonomy']).copy() # remove Nan
     meta_clean['taxonomy'] = meta_clean['taxonomy'].astype(str) # convert taxonomy to string 
     print('NAs have been removed from KO metadata')
 
@@ -154,8 +150,12 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df):
                     for KO in KOs: 
                         if KO in ko_orgs_dict.keys():
                             organisms.append(ko_orgs_dict[KO])
-                        if KO in ko_abundance_dict.keys():
+                        if KO in ko_abundance_dict.keys() and e_weights:
                             abundance += ko_abundance_dict[KO]
+                    
+                    # if edge weights are not selected for make abundance NA
+                    if not e_weights:
+                        abundance = pd.NA
 
                     # make sure there are no duplicate organisms 
                     organisms = list(set(organisms))
@@ -167,16 +167,3 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df):
 
     # return pandas dataframe of edge info 
     return pd.DataFrame(data = edges_dict) 
-
-
-
-# Files needed for node creation 
-m = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/AMON_metab_output/co_dict.json' #list of microbe compounds 
-f = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/compound_meta/foodb_meta_freq.csv' # list of food compounds 
-nodes = node_df(m, f)
-
-# files needed for each creation 
-#kos = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/AMON_metab_output/ko_dict.json' ###### might not be necessary
-rxns = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/AMON_metab_output/rn_dict.json'
-meta = '/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/ko_taxonomy_abundance.csv'
-edge_df(rn_json=rxns, ko_meta=meta, nodes_df=nodes)
