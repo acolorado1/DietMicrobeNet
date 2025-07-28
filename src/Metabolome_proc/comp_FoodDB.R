@@ -79,11 +79,3 @@ get_diet_fooDB_compounds(diet_df = args$diet_file,
                         output_path = args$output_file, 
                         meta_out_path = args$meta_o_file)
 
-# example to run in the terminal 
-# can probably get rid of the output_file this is confusing and only used for AMON which we don't need in this case 
-# Rscript src/Metabolome_proc/comp_FoodDB.R \
-# > --diet_file "Data/test/app_ouput/foodb_foods_dataframe.csv" \
-# > --content_file "Data/Content.csv" \
-# > --ExDes_file "Data/CompoundExternalDescriptor.csv" \
-# > --output_file "Data/test/compound_network/foodb_comps_freq.txt" \
-# > --meta_o_file "Data/test/compound_meta/foodb_meta_freq.csv"
