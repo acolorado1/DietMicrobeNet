@@ -74,7 +74,7 @@ def merge_organism_KOs(org_dir:str, met_output:str):
     meta_long.to_csv(met_output, index=False)
 
     # Combine all KO entries into a single list with no duplicates 
-    combined_ko_list = combined_ko_list = list(set(chain.from_iterable(org_ko.values())))
+    combined_ko_list = list(set(chain.from_iterable(org_ko.values())))
     
     # Write unique KO entries to the output file
     ko_out = org_dir + "/joined.txt"
