@@ -1,77 +1,119 @@
+import shutil
 import subprocess as sp
 import pandas as pd 
 import os
-def get_KEGG_KOs(org_data:str, metadata_o:str):  
-    """Takes in csv generated through streamlit website of organism information 
-    and uses queries KEGG for compounds associated with organism KOs and concatenates all of them 
+from itertools import chain
+import argparse
+def get_KEGG_KOs(org_data: str, output: str, overwrite=False):  
+    if os.path.exists(output):
+        if overwrite:
+            print(f"Overwriting existing folder: {output}")
+            shutil.rmtree(output)
+            os.makedirs(output)
+        else:
+            print(f"Folder '{output}' exists. Skipping KO retrieval.")
+            return
+    else:
+        os.makedirs(output)
 
-    Args:
-        org_data (str): path to CSV file with organism info
-
-    Returns: 
-        Returns two files: list of upduplicated KOs and csv of KOs and metadata (e.g., org of origin)
-    """
-    # get food organism data frame 
     orgs = pd.read_csv(org_data)
-
-    # for each organism get all KOs 
     org_codes = orgs['Code'].tolist()
 
-    # create dict of organism and associated KOs
-    org_KOs = {}
+    for code in org_codes:
+        print(f"Getting info on organism: {code}")
+        kofile = os.path.join(output, f"{code}.txt")
 
-    # for each organism 
-    for code in org_codes: 
-        print("Getting info on organism: " + code )
-        
-        # write where KOs are going 
-        kofile = "Data/kegg_orgs/" + code + ".txt"
-
-        # check if path exists so as not to run multiple calls 
         if os.path.exists(kofile):
-            print('path exists skipping to compound prediction for this organism')
-        else:
-            # get KOs for organism
-            command = ["extract_ko_genome_from_organism.py", 
-                    "-i", code, 
-                    "-o", kofile]
-            sp.run(command)
+            print(f"{kofile} exists. Skipping.")
+            continue
 
-        #with open(kofile, 'r'):
-def run_AMON(micro_KOs: str, diet_KOs: str, output_path: str, additional_args: list = None):
-    """Takes a file containing microbiome-associated KOs and diet-associated KOs and runs AMON.
+        result = sp.run(["extract_ko_genome_from_organism.py", "-i", code, "-o", kofile],
+                        capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error fetching {code}: {result.stderr}")
+
+
+def merge_organism_KOs(org_dir:str, met_output:str):
+    """merge organism KOs 
 
     Args:
-        micro_KOs (str): Path to microbial KO file.
-        diet_KOs (str): Path to diet KO file.
-        output_path (str): Path for AMON output.
-        additional_args (list): Optional additional arguments for AMON.
+        org_dir (str): directory containing all organism files 
+        met_output (str): path to streamlit CSV 
+    
+    Returns: 
+        joined text file containing all KOs for AMON 
+        CSV of KOs and codes 
     """
-    # Validate input paths
-    if not os.path.exists(micro_KOs):
-        raise FileNotFoundError(f"Microbial KO file not found: {micro_KOs}")
-    if not os.path.exists(diet_KOs):
-        raise FileNotFoundError(f"Diet KO file not found: {diet_KOs}")
-    
-    # Construct command
-    command = ["AMON.py", 
-               "-i", micro_KOs, 
-               "--other_gene_set", 
-               diet_KOs, "-o", 
-               output_path, "--save_entries"]
-    
-    # If there are additional arguments add 
-    if additional_args:
-        command.extend(additional_args)
+    # get full file paths for organism KOs 
+    file_paths = []
+    for root, _, files in os.walk(org_dir):
+        for file in files:
+            full_path = os.path.join(root, file)
+            file_paths.append(full_path)
 
-    print(f"Running AMON with microbiome KOs: {micro_KOs} and diet KOs: {diet_KOs}")
-    try:
-        result = sp.run(command, check=True, capture_output=True, text=True)
-        print(f"AMON completed successfully. Output saved to: {output_path}")
-        return result
-    except sp.CalledProcessError as e:
-        print(f"Error running AMON: {e}")
-        return None
+    # create empty dict for org an KOs
+    org_ko = {}
 
-#get_KEGG_compounds("/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/app_ouput/kegg_organisms_dataframe.csv")
+    # for each set of organism KOs
+    for organism in file_paths:
+
+        KOs = []
+
+        # open file and add KOs to list 
+        with open(organism, 'r') as file:
+            KOs.extend([line.strip() for line in file])
+            #get organism code and add to dict 
+            code = os.path.splitext(os.path.basename(organism))[0]
+            org_ko[code] = KOs
+    
+    # create pandas dataframe for compounds metadata and write csv
+    meta_long = pd.DataFrame([(key, kegg_id) for key, values in org_ko.items() for kegg_id in values], 
+                             columns=['code', 'kegg_id'])
+    
+    # save metadata file 
+    meta_long.to_csv(met_output, index=False)
+
+    # Combine all KO entries into a single list with no duplicates 
+    combined_ko_list = combined_ko_list = list(set(chain.from_iterable(org_ko.values())))
+    
+    # Write unique KO entries to the output file
+    ko_out = org_dir + "/joined.txt"
+    with open(ko_out, 'w') as file:
+        file.write("\n".join(combined_ko_list))
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Retrieve KEGG KOs for organisms and merge into a single file for AMON. CSV containig organism codes and KOs will also be generated"
+    )
+
+    parser.add_argument(
+        "-i", "--org_info",
+        type=str,
+        required=True,
+        help="Path to CSV file with organism info (must include 'Code' column)."
+    )
+    parser.add_argument(
+        "-k", "--ko_output",
+        type=str,
+        required=True,
+        help="Directory where KO files for each organism will be stored."
+    )
+    parser.add_argument(
+        "-o", "--org_ko_output",
+        type=str,
+        required=True,
+        help="Path to CSV file where merged organism-KO mapping will be saved."
+    )
+
+    args = parser.parse_args()
+
+    # Run main function
+    get_KEGG_KOs(org_data=args.org_info, 
+                 output=args.ko_output)
+    
+    merge_organism_KOs(org_dir=args.ko_output, 
+                       met_output=args.org_ko_output)
+
+if __name__ == "__main__":
+    main()
 
