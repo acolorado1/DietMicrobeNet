@@ -142,7 +142,7 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool):
                     # get KOs 
                     orthology = rn_info_dict['ORTHOLOGY']
                     KOs = []
-                    KOs.extend(orthology[index][0] for index in range(0,len(orthology)))
+                    KOs.extend(orthology[index][0] for index in range(len(orthology)))
 
                     # for each ko get all organisms and total abundance 
                     organisms = []
