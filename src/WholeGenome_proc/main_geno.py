@@ -39,14 +39,3 @@ if __name__ == "__main__":
         o_edges=args.o_edges
     )
 
-'''
-node_edge_dfs(f_meta='/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/org_KO_adj/orgs_KOs.csv', 
-              m_meta='/Users/burkhang/Code_Projs/DietMicrobeNet/Data/sample/ko_taxonomy_abundance.csv',
-              mapper='/Users/burkhang/Code_Projs/DietMicrobeNet/Data/geno_test/AMON_output/kegg_mapper.tsv',
-              co_json='/Users/burkhang/Code_Projs/DietMicrobeNet/Data/geno_test/AMON_output/co_dict.json', 
-              rn_json='/Users/burkhang/Code_Projs/DietMicrobeNet/Data/geno_test/AMON_output/rn_dict.json',
-              n_weights=True, 
-              e_weights=True, 
-              o_edges='/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/geno_nodes.csv', 
-              o_nodes='/Users/burkhang/Code_Projs/DietMicrobeNet/Data/test/geno_edges.csv')
-'''
