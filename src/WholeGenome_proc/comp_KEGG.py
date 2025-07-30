@@ -5,6 +5,13 @@ import os
 from itertools import chain
 import argparse
 def get_KEGG_KOs(org_data: str, output: str, overwrite=False):  
+    """_summary_
+
+    Args:
+        org_data (str): file path to streamlit CSV 
+        output (str): directory organism files will go 
+        overwrite (bool, optional): overwrite output directory. Defaults to False.
+    """
     if os.path.exists(output):
         if overwrite:
             print(f"Overwriting existing folder: {output}")
@@ -33,12 +40,14 @@ def get_KEGG_KOs(org_data: str, output: str, overwrite=False):
             print(f"Error fetching {code}: {result.stderr}")
 
 
-def merge_organism_KOs(org_dir:str, met_output:str):
+def merge_organism_KOs(org_dir:str, org_data: str, met_output:str):
+    # sourcery skip: use-fstring-for-concatenation
     """merge organism KOs 
 
     Args:
         org_dir (str): directory containing all organism files 
-        met_output (str): path to streamlit CSV 
+        org_data (str): path to streamlit CSV 
+        met_output (str): path to output with Code, organism, and KO in CSV 
     
     Returns: 
         joined text file containing all KOs for AMON 
@@ -50,7 +59,10 @@ def merge_organism_KOs(org_dir:str, met_output:str):
         for file in files:
             full_path = os.path.join(root, file)
             file_paths.append(full_path)
-
+    
+    # get organism and code 
+    orgs = pd.read_csv(org_data)
+    
     # create empty dict for org an KOs
     org_ko = {}
 
@@ -68,7 +80,8 @@ def merge_organism_KOs(org_dir:str, met_output:str):
     
     # create pandas dataframe for compounds metadata and write csv
     meta_long = pd.DataFrame([(key, kegg_id) for key, values in org_ko.items() for kegg_id in values], 
-                             columns=['code', 'kegg_id'])
+                             columns=['Code', 'kegg_id'])
+    meta_long = meta_long.merge(orgs, on='Code')
     
     # save metadata file 
     meta_long.to_csv(met_output, index=False)
@@ -111,7 +124,8 @@ def main():
     get_KEGG_KOs(org_data=args.org_info, 
                  output=args.ko_output)
     
-    merge_organism_KOs(org_dir=args.ko_output, 
+    merge_organism_KOs(org_dir=args.ko_output,
+                       org_data=args.org_info,
                        met_output=args.org_ko_output)
 
 if __name__ == "__main__":
