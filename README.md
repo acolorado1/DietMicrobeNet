@@ -10,6 +10,8 @@ In the terminal, go to directory of choice and clone this repo:
 
 ```
 git clone https://github.com/acolorado1/DietMicrobeNet.git
+
+cd DietMicrobeNet #move into this project directory 
 ```
 
 Create environment with yaml file provided:
@@ -21,13 +23,34 @@ conda activate DietMicrobeNet
 
 ## Workflow 
 
+### Downloading FooDB and HMDB database information
+
+For the following scripts to run you will need four files taken from FooDB and HMDB located in a public drive. 
+
+To do this click links, download, and move to proper directory.
+
+1. [Compound External Descriptors](https://olucdenver-my.sharepoint.com/:x:/r/personal/angelasofia_burkhartcolorado_cuanschutz_edu/Documents/Thesis/FilesToBigForGit/CompoundExternalDescriptor.csv?d=wfaeef125a5724e01b78895bfac7e12b9&csf=1&web=1&e=VDNmlf)
+2. [Content](https://olucdenver-my.sharepoint.com/:x:/r/personal/angelasofia_burkhartcolorado_cuanschutz_edu/Documents/Thesis/FilesToBigForGit/Content.csv?d=w0561548263a643d5958648017a73a6f1&csf=1&web=1&e=U0BL6m)
+3. [Food](https://olucdenver-my.sharepoint.com/:x:/r/personal/angelasofia_burkhartcolorado_cuanschutz_edu/Documents/Thesis/FilesToBigForGit/Food.csv?d=w5602917cd62c4d1b95cc33e53ebb0714&csf=1&web=1&e=P9dnuZ)
+4. [HMDB](https://olucdenver-my.sharepoint.com/:x:/r/personal/angelasofia_burkhartcolorado_cuanschutz_edu/Documents/Thesis/FilesToBigForGit/hmdb.csv?d=w3d7c36b64dc94bc3a26285a90858e630&csf=1&web=1&e=VvwowZ)
+
+To move files into proper directory, in terminal use this command: 
+
+```
+# where /Data/ is destination file 
+
+mv path/to/downloaded/file.csv /Data/ 
+```
+
 ### Getting Compound Lists 
 
 A web app has been developed to create CSVs that will reference specific food items either from KEGG or FooDB and user will input the frequency of their consumption. 
 
+Then, for web app usage run: 
+
 ```
 # in terminal
-streamlit run src/get_food.py
+streamlit run src/get_foods.py
 ```
 1. Search for food 
 2. Add user input value from 1 to 100 (frequency of consumption as a percentage)
