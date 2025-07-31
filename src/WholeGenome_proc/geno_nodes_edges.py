@@ -175,6 +175,10 @@ def node_edge_dfs(f_meta:str,
                 food_freq_dict[compound] = int(freq)
             else:
                 food_freq_dict[compound] = pd.NA # default no weights is NA 
+        else: # microbe only associated compounds 
+            food_item_dict[compound] = pd.NA
+            food_freq_dict[compound] = pd.NA
+
 
     # Convert each dict to a DataFrame
     df_origin = pd.DataFrame(origin_dict.items(), columns=['c_id', 'origin'])
