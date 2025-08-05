@@ -9,16 +9,16 @@ This effort is to characterize microbial metabolism of dietary compounds.
 In the terminal, go to directory of choice and clone this repo:
 
 ```
-git clone https://github.com/acolorado1/DietMicrobeNet.git
-
-cd DietMicrobeNet #move into this project directory 
+git clone https://github.com/acolorado1/DietMicrobeNet.git       # clone repo
+cd DietMicrobeNet                                                # move into this project directory 
 ```
 
 Create environment with yaml file provided:
 
 ```
-conda env create -f DMnet_env.yaml
-conda activate DietMicrobeNet
+conda env create -f DMnet_env.yaml                              # create environment
+conda activate DietMicrobeNet                                   # activate environment 
+pip install -e .                                                # set up directory structure 
 ```
 
 ## Workflow 

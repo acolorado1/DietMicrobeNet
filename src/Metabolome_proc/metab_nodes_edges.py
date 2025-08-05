@@ -70,6 +70,11 @@ def node_df(microbome_compounds:str, food_compounds:str, n_weights:bool):
                 food_freq_dict[compound] = int(freq)
             else:
                 food_freq_dict[compound] = pd.NA # default no weights is NA 
+        
+        # if only microbe related 
+        else: 
+            food_freq_dict[compound] = pd.NA
+            food_item_dict[compound] = pd.NA
             
             
 

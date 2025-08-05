@@ -134,8 +134,8 @@ def node_edge_dfs(f_meta:str,
                     comp_food[compound] = set()  # initialize empty set
                 comp_food[compound].update(k_set)  # directly add new KOs
 
-    node_df = pd.DataFrame(edges_dict)
-    node_df.to_csv(o_nodes, index=False)
+    edges_df = pd.DataFrame(edges_dict)
+    edges_df.to_csv(o_edges, index=False)
 
     # create node information dictionaries 
     origin_dict = {}
@@ -185,6 +185,6 @@ def node_edge_dfs(f_meta:str,
     df_food = pd.DataFrame(food_item_dict.items(), columns=['c_id', 'assoc_food'])
     df_freq = pd.DataFrame(food_freq_dict.items(), columns=['c_id', 'freq'])
 
-    edge_df = df_origin.merge(df_food, on='c_id').merge(df_freq, on='c_id')
-    edge_df.to_csv(o_edges, index=False)
-    return None
+    nodes_df = df_origin.merge(df_food, on='c_id').merge(df_freq, on='c_id')
+    nodes_df.to_csv(o_nodes, index=False)
+    return nodes_df, edges_df
