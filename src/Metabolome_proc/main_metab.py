@@ -63,6 +63,20 @@ def main():
         required=True, 
         help='directory where CSV of edge information should go'
     )
+    parser.add_argument(
+        '-a', 
+        '--abundance_col', 
+        type=str, 
+        required=True, 
+        help='column in microbe metadata corresponding to the abundance information'
+    )
+    parser.add_argument(
+        '-o', 
+        '--orgs', 
+        action='store_true', 
+        required=True, 
+        help='True or False whether organism information is to be included'
+    )
 
     args = parser.parse_args()
 
@@ -73,7 +87,9 @@ def main():
     edge_df = mne.edge_df(rn_json=args.reactions, 
                            ko_meta=args.microbiome_metadata, 
                            nodes_df=node_df, 
-                           e_weights=args.edge_weights)
+                           e_weights=args.edge_weights, 
+                           abundance=args.abundance_col, 
+                           orgs=args.orgs)
     # create CSVs 
     node_df.to_csv(args.nodes_output, index=False)
     edge_df.to_csv(args.edges_output, index=False)

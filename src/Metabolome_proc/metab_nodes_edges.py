@@ -22,18 +22,15 @@ def node_df(microbome_compounds:str, food_compounds:str, n_weights:bool):
     for m_comp in m_comps:
         if m_comp[0] == 'G':
             m_comps.remove(m_comp)
-    print(f"There are {len(m_comps)} compounds assocaited with microbes")
 
     # get food assocaited compounds 
     f_comp_df = pd.read_csv(food_compounds)
 
     # get list of unique compounds from food 
     f_comps = list(set(f_comp_df['kegg_id'].tolist()))
-    print(f"There are {len(f_comps)} compounds assocaited with food items")
 
     # get list of all unique compounds 
     all_comps = list(set(m_comps + f_comps))
-    print(f"There are {len(all_comps)} unique compounds")
 
     # get the origin of each compound (microbe, food, or both)
     origin_dict = {}
@@ -85,7 +82,7 @@ def node_df(microbome_compounds:str, food_compounds:str, n_weights:bool):
 
     return df_origin.merge(df_food, on='c_id').merge(df_freq, on='c_id')
 
-def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool):
+def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool, abundance:str, orgs:bool):
     """creates a pandas dataframe containing edge information for graph visualization
 
     Args:
@@ -93,6 +90,8 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool):
         ko_meta (str): file path to csv containing KO, taxonomy, and abundance information
         nodes_df (pandas dataframe): output of nodes_df function  
         e_weights (bool): true or false if edge weights are to be used 
+        abundance (str): the name of the column with abundance information 
+        orgs (bool): organism names included or not 
 
     Returns: 
         pandas dataframe: dataframe containing KO information including reaction, associated 
@@ -106,15 +105,15 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool):
     meta = pd.read_csv(ko_meta)
     meta_clean = meta.dropna(subset=['KO', 'taxonomy']).copy() # remove Nan
     meta_clean['taxonomy'] = meta_clean['taxonomy'].astype(str) # convert taxonomy to string 
-    print('NAs have been removed from KO metadata')
 
     # create dict of KOs with abundance 
-    ko_abundance_sum = meta_clean.groupby('KO', as_index=False).sum('Abundance_RPKs')
-    ko_abundance_dict = ko_abundance_sum.set_index('KO')['Abundance_RPKs'].to_dict()
+    ko_abundance_sum = meta_clean.groupby('KO', as_index=False).sum(abundance)
+    ko_abundance_dict = ko_abundance_sum.set_index('KO')[abundance].to_dict()
 
     # create dict of KOs with list of associated organisms -> removed duplicates and sorted alphabetically
-    ko_orgs_df = meta_clean.groupby('KO')['taxonomy'].agg(lambda x: ', '.join(sorted(set(x)))).reset_index()
-    ko_orgs_dict = ko_orgs_df.set_index('KO')['taxonomy'].to_dict()
+    if orgs: 
+        ko_orgs_df = meta_clean.groupby('KO')['taxonomy'].agg(lambda x: ', '.join(sorted(set(x)))).reset_index()
+        ko_orgs_dict = ko_orgs_df.set_index('KO')['taxonomy'].to_dict()
 
     # get list of nodes 
     compounds = nodes_df['c_id'].tolist()
@@ -125,7 +124,7 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool):
                   'reaction': [],
                   'KOs': [], 
                   'organisms': [], 
-                  'abundance_RPKs': []}
+                  'abundance': []}
 
     # each key is a reaction id from KEGG
     for rxn in rxns.keys():
@@ -167,8 +166,11 @@ def edge_df(rn_json:str, ko_meta:str, nodes_df, e_weights:bool):
 
                     # add to edges dictionary 
                     edges_dict['KOs'].append(','.join(KOs))
-                    edges_dict['organisms'].append(organisms)
-                    edges_dict['abundance_RPKs'].append(abundance)
+                    if orgs: 
+                        edges_dict['organisms'].append(organisms)
+                    else: 
+                        edges_dict['organisms'].append(pd.NA)
+                    edges_dict['abundance'].append(abundance)
 
     # return pandas dataframe of edge info 
     return pd.DataFrame(data = edges_dict) 
