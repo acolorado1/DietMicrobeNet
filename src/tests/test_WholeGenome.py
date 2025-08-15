@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from WholeGenome_proc import new_nodes_edges as nne 
+from WholeGenome_proc import nodes_edges as ne 
 
 # create dummy data 
 food_meta_df = pd.DataFrame({
@@ -21,17 +21,9 @@ mapper = pd.DataFrame({
     'origin':      ['both', 'food', 'food', 'microbe', 'both', 'both', 'both', 'food', 'both', 'both', 'both', 'microbe', 'microbe']
 })
 
-rn_dict = { 
-    'rn1': {'ORTHOLOGY': [['K00001']], 'EQUATION': [['C1', 'C2'], ['C3']]},
-    'rn2': {'ORTHOLOGY': [['K00002']], 'EQUATION': [['C2', 'C3'], ['C4', 'C5']]},
-    'rn3': {'ORTHOLOGY': [['K00003']], 'EQUATION': [['C1', 'C3'], ['C6']]},
-    'rn4': {'ORTHOLOGY': [['K00003'], ['K00004']], 'EQUATION': [['C5', 'C6'], ['C7']]},
-    'rn5': {'ORTHOLOGY': [['K00004']], 'EQUATION': [['C8'], ['C9']]}
-}
-
 class MyTestCase(unittest.TestCase): 
     def test_org_abundance(self): 
-        abundance, orgs = nne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
                                           abundance_column='Abundance_RPKs')
         expected_abundance = {'K00001': 15, 'K00004': 50}
         expected_orgs = {'K00001': 'org1, org2', 'K00004': 'org3'}  
@@ -40,7 +32,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(orgs, expected_orgs)
     
     def test_info_dicts(self):
-        comp_kos, rn_kos, rn_eq = nne.get_info_dicts(rxns=rn_dict)
+        comp_kos, rn_kos, rn_eq = ne.get_info_dicts(rxns=rn_dict)
         expected_compkos_c1 = ['K00001', 'K00003']
         expected_rnkos_rn4 = ['K00003', 'K00004']
         expected_rn2 = [['C2', 'C3'], ['C4', 'C5']]
@@ -51,11 +43,11 @@ class MyTestCase(unittest.TestCase):
 
     def test_get_organisms_and_abundance(self): 
         kos = ['K00003', 'K00004']
-        abundance, orgs = nne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
                                           abundance_column='Abundance_RPKs')
 
-        o = nne.get_organisms(kos, orgs)
-        a = nne.get_abundance(kos, abundance)
+        o = ne.get_organisms(kos, orgs)
+        a = ne.get_abundance(kos, abundance)
         
         expected_o = ['org3']
         expected_a = 50 
@@ -64,14 +56,13 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(a, expected_a)
     
     def test_edge_creation(self): 
-        abundance, orgs = nne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
                                           abundance_column='Abundance_RPKs')
-        comp_kos, rn_kos, rn_eq = nne.get_info_dicts(rxns=rn_dict)
+        comp_kos, rn_kos, rn_eq = ne.get_info_dicts(rxns=rn_dict)
 
-        edge_df = nne.build_edges_df(mapper=mapper, 
+        edge_df = ne.build_edges_df(mapper=mapper, 
                                      rxn_kos=rn_kos, 
-                                     rxn_equation=rn_eq, 
-                                     microbe_meta=microbe_meta, 
+                                     rxn_equation=rn_eq,  
                                      orgs=True, 
                                      e_weights=True, 
                                      ko_organisms=orgs, 
@@ -85,10 +76,9 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(list(edge_df.columns), edge_columns)
 
         # test that edge weights become NAs 
-        edge_wo_weights = nne.build_edges_df(mapper=mapper, 
+        edge_wo_weights = ne.build_edges_df(mapper=mapper, 
                                      rxn_kos=rn_kos, 
                                      rxn_equation=rn_eq, 
-                                     microbe_meta=microbe_meta, 
                                      orgs=True, 
                                      e_weights=False, 
                                      ko_organisms=orgs, 
@@ -96,10 +86,9 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(edge_wo_weights['abundance'].isnull().all())
 
         # test that organisms become NAs 
-        edge_wo_orgs = nne.build_edges_df(mapper=mapper, 
+        edge_wo_orgs = ne.build_edges_df(mapper=mapper, 
                                      rxn_kos=rn_kos, 
                                      rxn_equation=rn_eq, 
-                                     microbe_meta=microbe_meta, 
                                      orgs=False, 
                                      e_weights=True, 
                                      ko_organisms=orgs, 
@@ -107,15 +96,15 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(edge_wo_orgs['organisms'].isnull().all())
 
     def test_node_creation(self):
-        abundance, orgs = nne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
                                           abundance_column='Abundance_RPKs')
-        comp_kos, rn_kos, rn_eq = nne.get_info_dicts(rxns=rn_dict)
+        comp_kos, rn_kos, rn_eq = ne.get_info_dicts(rxns=rn_dict) 
 
-        node_df = nne.build_nodes_df(mapper=mapper, 
+        node_df = ne.build_nodes_df(mapper=mapper, 
                                      food_meta=food_meta_df,
                                      compound_kos=comp_kos,
                                      frequency=True)
-        
+
         # test how many nodes would be made, expect 9
         self.assertEqual(len(node_df), 9) 
 
@@ -143,7 +132,7 @@ class MyTestCase(unittest.TestCase):
         self.assertFalse(check)
 
         # make sure weights are na when frequency = False
-        node_df = nne.build_nodes_df(mapper=mapper, 
+        node_df = ne.build_nodes_df(mapper=mapper, 
                                      food_meta=food_meta_df,
                                      compound_kos=comp_kos,
                                      frequency=False)
