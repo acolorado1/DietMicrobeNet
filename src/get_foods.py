@@ -96,7 +96,7 @@ st.header("FooDB Food Item Selection")
 
 # Get the current directory of the script
 script_dir = os.path.dirname(__file__)
-file_path = os.path.join(script_dir, '..', 'data', 'food.csv')
+file_path = os.path.join(script_dir, '..', 'data', 'Food.csv')
 
 # Load CSV
 food_df = pd.read_csv(file_path)
