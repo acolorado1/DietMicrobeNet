@@ -21,10 +21,18 @@ mapper = pd.DataFrame({
     'origin':      ['both', 'food', 'food', 'microbe', 'both', 'both', 'both', 'food', 'both', 'both', 'both', 'microbe', 'microbe']
 })
 
+rn_dict = { 
+    'rn1': {'ORTHOLOGY': [['K00001']], 'EQUATION': [['C1', 'C2'], ['C3']]},
+    'rn2': {'ORTHOLOGY': [['K00002']], 'EQUATION': [['C2', 'C3'], ['C4', 'C5']]},
+    'rn3': {'ORTHOLOGY': [['K00003']], 'EQUATION': [['C1', 'C3'], ['C6']]},
+    'rn4': {'ORTHOLOGY': [['K00003'], ['K00004']], 'EQUATION': [['C5', 'C6'], ['C7']]},
+    'rn5': {'ORTHOLOGY': [['K00004']], 'EQUATION': [['C8'], ['C9']]}
+}
+
 class MyTestCase(unittest.TestCase): 
     def test_org_abundance(self): 
         abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
-                                          abundance_column='Abundance_RPKs')
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
         expected_abundance = {'K00001': 15, 'K00004': 50}
         expected_orgs = {'K00001': 'org1, org2', 'K00004': 'org3'}  
         
@@ -44,7 +52,7 @@ class MyTestCase(unittest.TestCase):
     def test_get_organisms_and_abundance(self): 
         kos = ['K00003', 'K00004']
         abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
-                                          abundance_column='Abundance_RPKs')
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
 
         o = ne.get_organisms(kos, orgs)
         a = ne.get_abundance(kos, abundance)
@@ -57,7 +65,7 @@ class MyTestCase(unittest.TestCase):
     
     def test_edge_creation(self): 
         abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
-                                          abundance_column='Abundance_RPKs')
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
         comp_kos, rn_kos, rn_eq = ne.get_info_dicts(rxns=rn_dict)
 
         edge_df = ne.build_edges_df(mapper=mapper, 
@@ -97,7 +105,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_node_creation(self):
         abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
-                                          abundance_column='Abundance_RPKs')
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
         comp_kos, rn_kos, rn_eq = ne.get_info_dicts(rxns=rn_dict) 
 
         node_df = ne.build_nodes_df(mapper=mapper, 
@@ -113,7 +121,7 @@ class MyTestCase(unittest.TestCase):
 
         # make sure that all microbial compounds have no associated food 
         associations = node_df[node_df['origin']=='microbe']
-        check = associations['food_assoc'].isna().all() 
+        check = associations['assoc_food'].isna().all() 
         self.assertTrue(check)
 
         # make sure all microbial compound have no associated freq 
@@ -123,7 +131,7 @@ class MyTestCase(unittest.TestCase):
 
         # make sure all food associated compounds have food assoc 
         associations = node_df[node_df['origin']!='microbe']
-        check = associations['food_assoc'].isna().all() 
+        check = associations['assoc_food'].isna().all() 
         self.assertFalse(check)
 
         # make sure all microbial compound have no associated freq 
