@@ -1,98 +1,86 @@
-# this code will run the edges and nodes dataframe creation from terminal 
-
-import metab_nodes_edges as mne 
+import metab_nodes_edges as ne 
 import argparse as arg
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+import sys
+import warnings
 
 def main():
-    parser = arg.ArgumentParser(
-        description='Output two dataframes as CSVs of node and edge information'
-    )
-    parser.add_argument(
-        '-m',
-        '--microbe_info',
-        type=str, 
-        required=True,
-        help='file path to AMON output of microbial compounds, KOs, and reactions'
-    )
-    parser.add_argument(
-        '-f', 
-        '--food_info', 
-        type=str,
-        required=True, 
-        help='file path to food compound information taken from comp_FoodDB.R'
-    )
-    parser.add_argument(
-        '-n_w', 
-        '--node_weights', 
-        action='store_true', 
-        required=True, 
-        help='True or False wether node weights (food frequencies) will be used'
-    )
-    parser.add_argument( 
-        '-r', 
-        '--reactions', 
-        type=str, 
-        required=True, 
-        help='file path to rn_dict.json AMON output'
-    )
-    parser.add_argument(
-        '-meta', 
-        '--microbiome_metadata', 
-        type=str, 
-        required=True, 
-        help='filepath to CSV containing KOs, taxonomy, and abundance information'
-    )
-    parser.add_argument(
-        '-e_w',
-        '--edge_weights', 
-        action='store_true', 
-        required=True, 
-        help='True or False wether edge weights (abundance measures) will be used'
-    )
-    parser.add_argument(
-        '-n_o', 
-        '--nodes_output', 
-        type=str, 
-        required=True, 
-        help='directory where CSV of node information should go'
-    )
-    parser.add_argument(
-        '-e_o', 
-        '--edges_output', 
-        type=str, 
-        required=True, 
-        help='directory where CSV of edge information should go'
-    )
-    parser.add_argument(
-        '-a', 
-        '--abundance_col', 
-        type=str, 
-        required=True, 
-        help='column in microbe metadata corresponding to the abundance information'
-    )
-    parser.add_argument(
-        '-o', 
-        '--orgs', 
-        action='store_true', 
-        required=True, 
-        help='True or False whether organism information is to be included'
-    )
+    parser = arg.ArgumentParser(description='Create two dataframes of node and edge information from food metabolomes and AMON outputs')
+   
+    parser.add_argument('--f', type=str,required=True, 
+        help='file path to food compound information taken from comp_FoodDB.R')
+    parser.add_argument('--r', type=str, required=True, 
+        help='file path to rn_dict.json AMON output')
+    parser.add_argument('--m_meta', type=str, required=True, 
+        help='filepath to CSV containing KOs, taxonomy, and abundance information')
+    parser.add_argument('--n_weights', action='store_true', required=True, 
+        help='True or False wether node weights (food frequencies) will be used')
+    parser.add_argument('--e_weights', action='store_true', required=True, 
+        help='True or False wether edge weights (abundance measures) will be used')
+    parser.add_argument('--org', action='store_true', required=True, 
+        help='True or False whether organism information is to be included')
+    parser.add_argument('--a', type=str, required=True, 
+        help='column in microbe metadata corresponding to the abundance information')
+    parser.add_argument('--o', type=str, required=True, 
+        help='directory where outputs will go')
 
     args = parser.parse_args()
 
-    # call nodes and edges functions 
-    node_df = mne.node_df(microbome_compounds=args.microbe_info, 
-                           food_compounds=args.food_info, 
-                           n_weights=args.node_weights)
-    edge_df = mne.edge_df(rn_json=args.reactions, 
-                           ko_meta=args.microbiome_metadata, 
-                           nodes_df=node_df, 
-                           e_weights=args.edge_weights, 
-                           abundance=args.abundance_col, 
-                           orgs=args.orgs)
+    # check if output directory exists and create one if it does not 
+    if not os.path.exists(args.o):
+        os.makedirs(args.o)
+        print(f'Directory {args.o} created successfully')
+    else:
+        print('Directory already exists')
+        sys.exit()
+
+    # read in data 
+    rxns, f_meta, m_meta = ne.data_read_in(reaction_path=args.r, food_path=args.f, m_meta=args.m_meta, 
+                                           e_weights=args.e_weights, orgs=args.org, abundance_column=args.a)
+    
+    # get taxonomy and abundance for each KO
+    ko_abundance, ko_taxonomy = ne.make_organisms_abundance_dict(microbe_meta_clean=m_meta, abundance_column=args.a, 
+                                                                 e_weights=args.e_weights, orgs=args.org)
+    
+    # create edges and get lists of compounds 
+    edges_df, org_comps, all_rxn_comps = ne.build_edges_df(rxns=rxns, orgs=args.org, e_weights=args.e_weights, 
+                                                           ko_abundance=ko_abundance, ko_organisms=ko_taxonomy)
+    if len(edges_df) == 0:
+        warnings.warn('There are no edges found, please check files to make sure they are correct ones')
+
+
+    # create nodes 
+    nodes_df = ne.build_nodes_df(food_meta=f_meta, org_comps=org_comps, all_rxn_comps=all_rxn_comps, frequency=args.n_weights)
+    if len(nodes_df) == 0:
+        warnings.warn('There are no nodes found, please check files to make sure they are correct ones')
+    
+    # summarize results 
+    ne.summarize_res(rxns=rxns, nodes_df=nodes_df, edges_df=edges_df)
+    
+    # create distribution plots of food frequency and abundance 
+    if args.n_weights:
+        plt.figure(figsize=(8,6))
+        sns.histplot(nodes_df['freq'], kde=True)
+        plt.title('Distribution of Food Frequencies Associated with Nodes')
+        plt.xlabel('Food Frequency Value')
+        plt.ylabel('Frequency/Density')
+        plt.savefig(args.o + 'M_FoodFrequencyDistribution.png')
+        plt.close()
+
+    if args.e_weights:
+        plt.figure(figsize=(8,6))
+        sns.histplot(edges_df['abundance'], kde=True)
+        plt.title('Distribution of KO Abundance Associated with Edges')
+        plt.xlabel('Abundance')
+        plt.ylabel('Frequency/Density')
+        plt.savefig(args.o + 'M_AbundanceDistribution.png')
+        plt.close()
+    
     # create CSVs 
-    node_df.to_csv(args.nodes_output, index=False)
-    edge_df.to_csv(args.edges_output, index=False)
+    nodes_df.to_csv(args.o + 'M_nodes_df.csv', index=False)
+    edges_df.to_csv(args.o + 'M_edges_df.csv', index=False)
 
     exit()
 

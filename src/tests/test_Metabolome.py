@@ -1,90 +1,132 @@
 import unittest
-from pathlib import Path
-from Metabolome_proc import metab_nodes_edges as Mne
+import pandas as pd
+from Metabolome_proc import metab_nodes_edges as ne 
 
-project_root = Path(__file__).resolve().parents[2] # this takes us to DietMicrobeNet 
-microbe_comps_path = project_root / "Data" / "metab_test" / "AMON_output" / "co_dict.json"
-food_comps_path = project_root / "Data" / "test" / "metab_outputs" / "compound_info" / "foodb_meta_freq.csv"
-rn_path = project_root / "Data" / "metab_test" / "AMON_output" / "rn_dict.json"
-ko_meta_path = project_root / "Data" / "sample" / "ko_taxonomy_abundance.csv"
+# create dummy data 
+food_meta_df = pd.DataFrame({
+    'kegg_id': ['C1', 'C2', 'C8'], 
+    'name': ['apple', 'apple', 'cattle'],
+    'name_scientific': ['Malus pumila', 'Malus pumila', 'Bos taurus'],
+    'food_frequency': [60, 60, 40]
+})
+
+microbe_meta = pd.DataFrame({
+    'KO': ['K00001', 'K00001', 'K00004'],
+    'taxonomy': ['org1', 'org2', 'org3'],
+    'Abundance_RPKs': [5, 10, 50]
+})
+
+rn_dict = { 
+    'rn1': {'ORTHOLOGY': [['K00001']], 'EQUATION': [['C1', 'C2'], ['C3']]},
+    'rn5': {'ORTHOLOGY': [['K00004']], 'EQUATION': [['C8'], ['C9']]}
+}
 
 class MyTestCase(unittest.TestCase): 
-
-    # make sure column names are as expected 
-    def test_MetabDataframes(self):
-
-        nodes = Mne.node_df(microbome_compounds=microbe_comps_path, 
-                            food_compounds=food_comps_path,
-                            n_weights=True)
-
-        edges = Mne.edge_df(rn_json=rn_path, 
-                                      ko_meta=ko_meta_path, 
-                                      nodes_df=nodes, 
-                                      e_weights=True, 
-                                      abundance='Abundance_RPKs',
-                                      orgs=True)
+    def test_org_abundance(self): 
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
+        expected_abundance = {'K00001': 15, 'K00004': 50}
+        expected_orgs = {'K00001': 'org1, org2', 'K00004': 'org3'}  
         
-        # list of expected columns 
-        node_columns = ['c_id', 'origin', 'assoc_food', 'freq']
-        edge_columns = ['compound1','compound2','reaction','KOs','organisms','abundance']
+        self.assertEqual(abundance, expected_abundance)
+        self.assertEqual(orgs, expected_orgs)
 
-        # check column values 
-        self.assertEqual(list(nodes.columns), node_columns)
-        self.assertEqual(list(edges.columns), edge_columns)
+    def test_get_organisms_and_abundance(self): 
+        kos = ['K00003', 'K00004']
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
 
-    # test with and without node weights  
-    def test_MetabNodeWeights(self): 
+        o = ne.get_organisms(kos, orgs)
+        a = ne.get_abundance(kos, abundance)
+        
+        expected_o = ['org3']
+        expected_a = 50 
 
-        nodes_w_weights = Mne.node_df(microbome_compounds=microbe_comps_path, 
-                            food_compounds=food_comps_path,
-                            n_weights=True)
-
-        nodes_wo_wights = Mne.node_df(microbome_compounds=microbe_comps_path, 
-                            food_compounds=food_comps_path,
-                            n_weights=False)
+        self.assertCountEqual(o , expected_o)
+        self.assertEqual(a, expected_a)
     
-        # check column values 
-        self.assertFalse(nodes_w_weights['freq'].isna().all()) 
-        self.assertTrue(nodes_wo_wights['freq'].isna().all())
+    def test_edge_creation(self): 
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
 
-    # test with and without edge weights 
-    def test_MetabEdgeWeights(self):
+        edge_df, org_comps, all_rxn_comps = ne.build_edges_df(rxns=rn_dict, 
+                                    orgs=True, 
+                                    e_weights=True,
+                                    ko_abundance=abundance, 
+                                    ko_organisms=orgs)
 
-        nodes = Mne.node_df(microbome_compounds=microbe_comps_path, 
-                            food_compounds=food_comps_path,
-                            n_weights=True)
-
-        edges_w_weights = Mne.edge_df(rn_json=rn_path, 
-                                      ko_meta=ko_meta_path, 
-                                      nodes_df=nodes, 
-                                      e_weights=True, 
-                                      abundance='Abundance_RPKs',
-                                      orgs=True)
-        edges_wo_weights = Mne.edge_df(rn_json=rn_path, 
-                                      ko_meta=ko_meta_path, 
-                                      nodes_df=nodes, 
-                                      e_weights=False, 
-                                      abundance='Abundance_RPKs',
-                                      orgs=True)
+        # test how many edges would be made, expect 3
+        self.assertEqual(len(edge_df), 3) 
         
-        # check column values 
-        self.assertFalse(edges_w_weights['abundance'].isna().all()) 
-        self.assertTrue(edges_wo_weights['abundance'].isna().all())
+        # test dataframe output 
+        edge_columns = ['compound1','compound2','reaction','KOs','organisms','abundance']
+        self.assertEqual(list(edge_df.columns), edge_columns)
 
-    # test metabolome node origins
-    def test_MetabNodeOrigins(self):   
+        # test that edge weights become NAs 
+        edge_wo_weights, org_comps, all_rxn_comps = ne.build_edges_df(rxns=rn_dict, 
+                                    orgs=True, 
+                                    e_weights=False,
+                                    ko_abundance=abundance, 
+                                    ko_organisms=orgs)
+        self.assertTrue(edge_wo_weights['abundance'].isnull().all())
 
-        nodes = Mne.node_df(microbome_compounds=microbe_comps_path, 
-                            food_compounds=food_comps_path,
-                            n_weights=True)
-        
-        # list of only possible origins 
-        possible_origins = ['both', 'microbe', 'food']
+        # test that organisms become NAs 
+        edge_wo_orgs, org_comps, all_rxn_comps = ne.build_edges_df(rxns=rn_dict, 
+                                    orgs=False, 
+                                    e_weights=True,
+                                    ko_abundance=abundance, 
+                                    ko_organisms=orgs)
+        self.assertTrue(edge_wo_orgs['organisms'].isnull().all())
 
-        # get origins column
-        origins = nodes['origin']
+        # test number of organism compounds 
+        self.assertEqual(len(org_comps), 2)
 
-        self.assertTrue(origins.isin(possible_origins).all())
+        # test number of all compounds 
+        self.assertEqual(len(all_rxn_comps), 5)
+
+    def test_node_creation(self):
+        abundance, orgs = ne.make_organisms_abundance_dict(microbe_meta_clean=microbe_meta, 
+                                          abundance_column='Abundance_RPKs', e_weights=True, orgs=True)
+        edge_df, org_comps, all_rxn_comps = ne.build_edges_df(rxns=rn_dict, 
+                                    orgs=True, 
+                                    e_weights=True,
+                                    ko_abundance=abundance, 
+                                    ko_organisms=orgs) 
+
+        node_df = ne.build_nodes_df(food_meta=food_meta_df, org_comps=org_comps, all_rxn_comps=all_rxn_comps,
+                                    frequency=True)
+
+        # test how many nodes would be made, expect 9
+        self.assertEqual(len(node_df), 5) 
+
+        # test that all frequencies are either 60, 40, 100 or NA
+        self.assertTrue(node_df['freq'].isin([40, 60, 100, pd.NA]).all())
+
+        # make sure that all microbial compounds have no associated food 
+        associations = node_df[node_df['origin']=='microbe']
+        check = associations['assoc_food'].isna().all() 
+        self.assertTrue(check)
+
+        # make sure all microbial compound have no associated freq 
+        associations = node_df[node_df['origin']=='microbe']
+        check = associations['freq'].isna().all() 
+        self.assertTrue(check)
+
+        # make sure all food associated compounds have food assoc 
+        associations = node_df[node_df['origin']!='microbe']
+        check = associations['assoc_food'].isna().all() 
+        self.assertFalse(check)
+
+        # make sure all food compound have no associated freq 
+        associations = node_df[node_df['origin']!='microbe']
+        check = associations['freq'].isna().all() 
+        self.assertFalse(check)
+
+        # make sure weights are na when frequency = False
+        node_df = ne.build_nodes_df(food_meta=food_meta_df, org_comps=org_comps, all_rxn_comps=all_rxn_comps,
+                                    frequency=False)
+        check = node_df['freq'].isna().all() 
+        self.assertTrue(check)
 
 if __name__ == "__main__":
     unittest.main()
