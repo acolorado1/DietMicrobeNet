@@ -4,13 +4,13 @@ import pandas as pd
 import os
 from itertools import chain
 import argparse
-def get_KEGG_KOs(org_data: str, output: str, overwrite=False):  
+def get_KEGG_KOs(org_data: str, output: str, overwrite=True):  
     """_summary_
 
     Args:
         org_data (str): file path to streamlit CSV 
         output (str): directory organism files will go 
-        overwrite (bool, optional): overwrite output directory. Defaults to False.
+        overwrite (bool, optional): overwrite output directory. Defaults to True.
     """
     if os.path.exists(output):
         if overwrite:

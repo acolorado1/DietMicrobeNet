@@ -38,10 +38,14 @@ for (package in packages) {
 hmdb <- read_csv("../../Data/hmdb.csv")
 meta <- read_csv(params$node_file)
 
+# rename hmdb column
+colnames(hmdb)[1] <- "c_id"
+
 # clean meta 
+colnames(meta)[1] <- "c_id"
 meta_clean <- meta %>% 
-  filter(origin != 'microbe') %>% 
-  mutate(assoc_food = gsub("[\\{\\}' ]", "", assoc_food)) %>%  # remove {, }, ', and spaces
+  filter(origin != 'microbe' & origin != 'none') %>% 
+  mutate(assoc_food = gsub("\\[|\\]|'| ", "", assoc_food)) %>%  # remove [], ', and spaces
   separate_rows(assoc_food, sep = ",")  # split into multiple rows
 ```
 
@@ -118,8 +122,6 @@ compound_summary %>%
 Points are colored by the number of compounds found in that taxonomic classification. 
 
 ```{r}
-colnames(hmdb)[1] <- "c_id"
-
 meta_clean %>% 
   select(assoc_food, c_id) %>% 
   group_by(assoc_food) %>% 

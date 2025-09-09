@@ -29,12 +29,12 @@ def main():
     args = parser.parse_args()
 
     # check if output directory exists and create one if it does not 
-    if not os.path.exists(args.o):
+    '''if not os.path.exists(args.o):
         os.makedirs(args.o)
         print(f'Directory {args.o} created successfully')
     else:
         print('Directory already exists')
-        sys.exit()
+        sys.exit()'''
 
     # read in data 
     rxns, f_meta, m_meta = ne.data_read_in(reaction_path=args.r, food_path=args.f, m_meta=args.m_meta, 

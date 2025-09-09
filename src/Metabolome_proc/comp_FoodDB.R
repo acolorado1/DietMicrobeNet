@@ -12,7 +12,6 @@ parser <- ArgumentParser()
 parser$add_argument('--diet_file', help = "CSV file containing food items")
 parser$add_argument('--content_file', help = 'CSV file containing content info on food')
 parser$add_argument('--ExDes_file', help = 'CSV file containing external descriptors on compounds')
-parser$add_argument('--output_file', help = 'file path for output')
 parser$add_argument('--meta_o_file', help = 'file path for compound metadata output')
 args <- parser$parse_args()
 
@@ -21,7 +20,6 @@ args <- parser$parse_args()
 #' @param diet_df CSV generated through included website 
 #' @param content_df content CSV  from FooDB
 #' @param external_descriptor_df CompoundExternalDescriptor CSV from FooDB
-#' @param output_path file path for KEGG compounds
 #' @param meta_out_path output path for metadata file on compounds
 #'
 #' @return file with a list of KEGG Compounds 
@@ -29,7 +27,6 @@ args <- parser$parse_args()
 get_diet_fooDB_compounds <- function(diet_df, 
                                      content_df, 
                                      external_descriptor_df, 
-                                     output_path, 
                                      meta_out_path){ 
   
   # load in data 
@@ -69,13 +66,11 @@ get_diet_fooDB_compounds <- function(diet_df,
   colnames(meta) <- c("foodb_compound_id", "food_id", "org_food", "kegg_id", "name", "name_scientific", "food_frequency")
   
   write.csv(meta, file = meta_out_path, row.names = F)
-  write.table(meta$kegg_id, output_path, row.names = F, sep = '\n', col.names = F, quote = F)
 }
 
 # call function
 get_diet_fooDB_compounds(diet_df = args$diet_file,
                         content_df = args$content_file,
                         external_descriptor_df = args$ExDes_file,
-                        output_path = args$output_file, 
                         meta_out_path = args$meta_o_file)
 

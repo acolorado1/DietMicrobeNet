@@ -22,6 +22,9 @@ dependencies:
   - r-argparse
   - streamlit
   - pandoc
+  - coin-or-cbc
+  - snakemake
   - pip:
     - AMON-bio
     - lxml
+    

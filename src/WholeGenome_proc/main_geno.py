@@ -33,14 +33,6 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    # check if output directory exists and create one if it does not 
-    if not os.path.exists(args.o):
-        os.makedirs(args.o)
-        print(f'Directory {args.o} created successfully')
-    else:
-        print('Directory already exists')
-        sys.exit()
-
     # read in all files 
     food_meta, m_meta_clean, mapper_df, rxns = ne.data_read_in(f_meta=args.f_meta, 
                                                                 m_meta=args.m_meta, 
