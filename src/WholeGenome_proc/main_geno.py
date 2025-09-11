@@ -21,7 +21,7 @@ def parse_args():
                         help="If provided, nodes will have frequencies associated with them")
     parser.add_argument('--e_weights', action='store_true',
                         help="If provided, edges will have frequencies associated with them")
-    parser.add_argument('--a', type=str, required=True, default=None,
+    parser.add_argument('--a', type=str, required=False, default='',
                         help='name of the column where abundance information is located')
     parser.add_argument('--org', action='store_true',
                         help='If provided, will add organism information to edge dataframe')
