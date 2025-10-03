@@ -15,7 +15,6 @@ def main():
     parser.add_argument("--abundance-col", type=str, default="Abundance_RPKs", help="Column name for abundance")
 
     # Snakemake execution options
-    parser.add_argument("--snakefile", type=str, default="Snakefile", help="Path to Snakefile")
     parser.add_argument("--cores", type=int, default=1, help="Number of cores to use")
     parser.add_argument("--profile", type=str, help="Snakemake profile to use")
     parser.add_argument("--dry-run", "-n", action="store_true", help="Perform a dry-run")
@@ -40,7 +39,7 @@ def main():
     )
 
     # Base snakemake command
-    cmd = f"snakemake --snakefile {args.snakefile} --cores {args.cores} --config {config_str}"
+    cmd = f"snakemake --snakefile Snakefile --cores {args.cores} --config {config_str}"
 
     # Optional flags
     if args.profile:
