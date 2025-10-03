@@ -3,17 +3,22 @@ import os
 # -----------------------------------
 # Configuration
 # -----------------------------------
-DIRECTORIES = [
-    '/Users/burkhang/Desktop/Zim_snakes/F_Exp/ZIM091_A', 
-    '/Users/burkhang/Desktop/Zim_snakes/F_Exp/ZIM094_W'
-]
+DIRECTORIES   = config.get("directories", [])
+METABOLOME    = config.get("metabolome", False)
+GENOME        = config.get("genome", False)
+E_WEIGHTS     = config.get("e_weights", False)
+N_WEIGHTS     = config.get("n_weights", False)
+INCLUDE_ORGS  = config.get("include_orgs", False)
+ABUNDANCE_COL = config.get("abundance_col", " ")
 
-METABOLOME   = True
-GENOME       = True
-E_WEIGHTS    = True
-N_WEIGHTS    = True
-INCLUDE_ORGS = True
-ABUNDANCE_COL = 'Abundance_RPKs'
+print("Running with config:")
+print(f"  Directories:   {DIRECTORIES}")
+print(f"  Metabolome:    {METABOLOME}")
+print(f"  Genome:        {GENOME}")
+print(f"  E Weights:     {E_WEIGHTS}")
+print(f"  N Weights:     {N_WEIGHTS}")
+print(f"  Include Orgs:  {INCLUDE_ORGS}")
+print(f"  Abundance Col: {ABUNDANCE_COL}")
 
 # -----------------------------------
 # Rule all – gather outputs across dirs
