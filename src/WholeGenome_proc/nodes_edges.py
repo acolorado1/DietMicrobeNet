@@ -255,32 +255,30 @@ def build_nodes_df(mapper, food_meta, compound_kos: dict, frequency: bool):
 
     return pd.DataFrame(nodes_list)
         
-def summarize_res(compound_kos:dict, rxn_kos:dict,  
-                  nodes_df, edges_df): 
+def summarize_res(rxn_kos:dict, nodes_df, edges_df, directory:str): 
     """create a summary of information for the network 
 
     Args:
-        compound_kos (dict): keys are compounds and values are KOs 
         rxn_kos (dict): keys are reactions and values ae KOs 
         nodes_df (pandas df): dataframe where each row is a node 
         edges_df (pandas df): dataframe where each row is an edge 
+        directory (str): file path
     """
-    # how many reactions were gathered 
-    print(f'{len(rxn_kos)} number of reactions were found')
+    with open(directory, 'w') as file_object:
 
-    # how many KOs mapped to a reaction 
-    all_unique_kos = set(sum(compound_kos.values(), []))
-    print(f'{len(all_unique_kos)} KOs mapped to reactions')
-    
-    # how many nodes were made 
-    print(f'{len(nodes_df)} nodes were created')
+        # how many reactions were gathered 
+        file_object.write(f'{len(rxn_kos)} number of reactions were found\n')
+        
+        # how many nodes were made 
+        file_object.write(f'{len(nodes_df)} nodes were created\n')
 
-    # how many edges 
-    print(f'{len(edges_df)} edges were created')
+        # how many edges 
+        file_object.write(f'{len(edges_df)} edges were created\n')
 
-    # how many nodes with none, both, microbial, and food origins 
-    print('Number of nodes per origin category')
-    print(nodes_df['origin'].value_counts())
+        # how many nodes with none, both, microbial, and food origins 
+        file_object.write('Number of nodes per origin category\n')
+        vc_str = "\n".join(f"{idx}: {val}" for idx, val in nodes_df['origin'].value_counts().items())
+        file_object.write(vc_str)
 
 
     

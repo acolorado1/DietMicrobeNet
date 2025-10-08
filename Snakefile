@@ -25,8 +25,8 @@ print(f"  Abundance Col: {ABUNDANCE_COL}")
 # -----------------------------------
 rule all:
     input:
-        (expand("{dir}/output_met/compound_report.html", dir=DIRECTORIES) if METABOLOME else []),
-        (expand("{dir}/output_gen/compound_report.html", dir=DIRECTORIES) if GENOME else [])
+        (expand("{dir}/output_met/graph/network_summary.txt", dir=DIRECTORIES) if METABOLOME else []),
+        (expand("{dir}/output_gen/graph/network_summary.txt", dir=DIRECTORIES) if GENOME else [])
 
 # ---------------------------
 # Metabolome rules
@@ -41,7 +41,8 @@ if METABOLOME:
             "{dir}/output_met/graph/M_nodes_df.csv",
             "{dir}/output_met/graph/M_edges_df.csv",
             "{dir}/output_met/graph/M_AbundanceDistribution.png",
-            "{dir}/output_met/graph/M_FoodFrequencyDistribution.png"
+            "{dir}/output_met/graph/M_FoodFrequencyDistribution.png", 
+            "{dir}/output_met/graph/network_summary.txt"
 
     rule CreateFoodMetadata_met:
         input: f_file = "{dir}/foodb_foods_dataframe.csv"
@@ -115,7 +116,8 @@ if METABOLOME:
             nodes = "{dir}/output_met/graph/M_nodes_df.csv",
             edges = "{dir}/output_met/graph/M_edges_df.csv",
             a_dis = "{dir}/output_met/graph/M_AbundanceDistribution.png",
-            f_dis = "{dir}/output_met/graph/M_FoodFrequencyDistribution.png"
+            f_dis = "{dir}/output_met/graph/M_FoodFrequencyDistribution.png",
+            summary = "{dir}/output_met/graph/network_summary.txt"
         conda: "DMnet_env.yaml"
         shell:
             """
@@ -146,7 +148,8 @@ if GENOME:
             "{dir}/output_gen/graph/WG_edges_df.csv",
             "{dir}/output_gen/graph/WG_AbundanceDistribution.png",
             "{dir}/output_gen/graph/WG_FoodFrequencyDistribution.png", 
-            "{dir}/output_gen/compound_report.html"
+            "{dir}/output_gen/compound_report.html",
+            "{dir}/output_gen/graph/network_summary.txt"
 
     rule CreateFoodMetadata_gen:
         input: kegg_orgs = "{dir}/kegg_organisms_dataframe.csv"
@@ -213,7 +216,8 @@ if GENOME:
             nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
             edges = "{dir}/output_gen/graph/WG_edges_df.csv",
             a_dis = "{dir}/output_gen/graph/WG_AbundanceDistribution.png",
-            f_dis = "{dir}/output_gen/graph/WG_FoodFrequencyDistribution.png"
+            f_dis = "{dir}/output_gen/graph/WG_FoodFrequencyDistribution.png",
+            summary = "{dir}/output_gen/graph/network_summary.txt"
         conda: "DMnet_env.yaml"
         shell: 
             """

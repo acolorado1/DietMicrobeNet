@@ -72,10 +72,10 @@ if __name__ == "__main__":
         warnings.warn('There are no nodes found, please check files to make sure they are correct ones')
     
     # have summary print
-    ne.summarize_res(compound_kos=compound_kos, 
-                      rxn_kos=rxn_kos,
+    ne.summarize_res(rxn_kos=rxn_kos,
                       nodes_df=nodes_df, 
-                      edges_df=edges_df) 
+                      edges_df=edges_df, 
+                      directory=args.o + 'network_summary.txt') 
     
     # create distribution plots of food frequency and abundance 
     if args.n_weights:
