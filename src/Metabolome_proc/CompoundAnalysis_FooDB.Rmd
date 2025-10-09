@@ -23,7 +23,7 @@ options(scipen = 999)
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 packages <- c("dplyr", "ggplot2", "readr", "cowplot", "thematic", "tidyr",
-              "tibble", "plotly", "rmarkdown")
+              "tibble", "plotly", "rmarkdown", "ggpubr")
 
 for (package in packages) {
   if (!require(package, character.only = TRUE)) {
@@ -36,49 +36,31 @@ for (package in packages) {
 ```{r}
 # get data 
 hmdb <- read_csv("../../Data/hmdb.csv")
-meta <- read_csv(params$food_file)
+meta <- read_csv(params$food_file) 
 ```
 
 FooDB is a unique database containing the findings of many LC-MS experiments aimed at finding compounds within different food items. It is important to understand what these food compounds are, and how each food is being characterized. Additionally, for each food item there will be multiple experiments assigned to it. For example, an *Apple* will be associated with compounds from experiments on multiple varieties of apples as well as apple byproducts like apple sauce.
 
 **Disclaimer**: Version of FooDB used is the Pre-release 1.0 and is the FooDB CSV file added April 7, 2020. Version 5.0 of HMDB All Metabolites XML file added November 17, 2021. 
 
+<center>
 ```{r}
 # pi chart of all compounds 
 meta %>% 
   select(name, kegg_id) %>% 
   group_by(name) %>% 
-  count(name) %>% 
-  ggplot(aes(x = "",y = n, fill = name)) + 
-    geom_bar(stat="identity", width=1) +
-    coord_polar("y", start=0) +
-    geom_text(aes(label = n),
-              position = position_stack(vjust = 0.5)) +
-    theme_void() +
-    theme(legend.position = "bottom", 
-          plot.title = element_text(hjust = 0.5), 
-          legend.title = element_blank()) +
-    ggtitle("Total Number of Compounds Per\nFood Item (Includes Duplicates)") -> A
-
-# pi chart of all non duplicated columns
-meta %>% 
-  select(name, kegg_id) %>% 
-  group_by(name) %>% 
   distinct() %>% 
-  count(name) %>% 
-  ggplot(aes(x = "",y = n, fill = name)) + 
-    geom_bar(stat="identity", width=1) +
-    coord_polar("y", start=0) +
-    geom_text(aes(label = n),
-              position = position_stack(vjust = 0.5)) +
-    theme_void() +
-    theme(legend.position = "bottom", 
-          plot.title = element_text(hjust = 0.5), 
-          legend.title = element_blank()) +
-    ggtitle("Number of Compounds Per \nFood Item (no Duplicates)") -> B
+  count(name) -> plot_df 
 
-cowplot::plot_grid(A, B)
+
+plot_ly(data = plot_df, 
+        labels = ~name, 
+        values = ~n, 
+        type = "pie", 
+        sort = F) %>% 
+  layout(title = "Number of Compounds Per Food Item (no Duplicates)")
 ```
+</center>
 
 ## Detailed Results {.tabset}
 
@@ -109,24 +91,24 @@ compound_summary %>%
   count(groups, name = "unique_count") -> unique_compounds 
 
 # plot unique compounds and summary stats 
-  ggplot(unique_compounds, aes(x = reorder(groups, unique_count), y = unique_count)) + 
-    geom_bar(stat = "identity") + 
-    labs(x = "Food Item", 
-         y = "Number of Compounds Unique to Food Item") + 
-    theme_bw() + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    annotate("text", 
-             x = 1, 
-             y = max(unique_compounds$unique_count) - median(unique_compounds$unique_count) , 
-             label = paste0("Numer of Shared Compounds: ", shared_count$shared_count,
-                            "\n\nThe Following Statistics are on the \nNumber of Unique Compounds",
-                            "\nMean \u00B1 SD: ", round(mean(unique_compounds$unique_count), 2), 
-                                "\u00B1", round(sd(unique_compounds$unique_count), 2), 
-                            "\nMedian: ", round(median(unique_compounds$unique_count), 2), 
-                            "\nRange: ", round(range(unique_compounds$unique_count)[1], 2), "-", 
-                                round(range(unique_compounds$unique_count)[2], 2)
-                            )
-             )
+ggplot(unique_compounds, aes(x = reorder(groups, unique_count), y = unique_count)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "Food Item", 
+       y = "Number of Compounds Unique to Food Item") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+  annotate("text", 
+           x = length(unique_compounds$groups)/2, 
+           y = max(unique_compounds$unique_count) - median(unique_compounds$unique_count) , 
+           label = paste0("Numer of Shared Compounds: ", shared_count$shared_count,
+                          "\n\nThe Following Statistics are on the \nNumber of Unique Compounds",
+                          "\nMean \u00B1 SD: ", round(mean(unique_compounds$unique_count), 2), 
+                              "\u00B1", round(sd(unique_compounds$unique_count), 2), 
+                          "\nMedian: ", round(median(unique_compounds$unique_count), 2), 
+                          "\nRange: ", round(range(unique_compounds$unique_count)[1], 2), "-", 
+                              round(range(unique_compounds$unique_count)[2], 2)
+                          )
+           )
 ```
 
 ### Taxonomic Classification of Compounds 
@@ -147,8 +129,9 @@ joined %>%
     geom_point(aes(color = n), size = 4) + 
     scale_color_gradient(low = "yellow", high = "purple4") +
     theme_bw() + 
-    theme(legend.title = element_blank()) + 
-    xlab("name") + 
+    theme(legend.title = element_blank(), 
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+    xlab("") + 
     ylab("Taxonomy Super Class ")
 
 joined %>% 
@@ -157,14 +140,15 @@ joined %>%
     geom_point(aes(color = n), size = 4) + 
     scale_color_gradient(low = "yellow", high = "purple4") +
     theme_bw() + 
-    theme(legend.title = element_blank()) + 
-    xlab("name") + 
+    theme(legend.title = element_blank(),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+    xlab("") + 
     ylab("Taxonomy Class ")
 ```
 
 ### Compound Frequency per Food Item
 
-Here each compound is colored by the number of occurences it was found in LC-MS experiments related to that food item. 
+Here each compound is colored by the number of occurrences it was found in LC-MS experiments related to that food item. 
 
 ```{r, fig.width=20, fig.height=60}
 # plot number of shared compounds per food item
@@ -252,4 +236,4 @@ ggplot(jaccard_long, aes(x = Column, y = Row, fill = Value)) +
 
 plotly::ggplotly(p)
 ```
-<\center>
+</center>

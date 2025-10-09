@@ -36,7 +36,7 @@ if METABOLOME:
     rule all_met:
         input: 
             "{dir}/output_met/food_meta.csv",
-            "{dir}/output_met/compound_report.html",
+            "{dir}/output_met/food_compound_report.html",
             "{dir}/output_met/AMON_output/rn_dict.json",
             "{dir}/output_met/graph/M_nodes_df.csv",
             "{dir}/output_met/graph/M_edges_df.csv",
@@ -61,7 +61,7 @@ if METABOLOME:
         input: 
             f_meta = "{dir}/output_met/food_meta.csv",
             graphs = "{dir}/output_met/graph/M_nodes_df.csv" 
-        output: report = "{dir}/output_met/compound_report.html"
+        output: report = "{dir}/output_met/food_compound_report.html"
         conda: "DMnet_env.yaml"
         shell:
             """
@@ -148,7 +148,7 @@ if GENOME:
             "{dir}/output_gen/graph/WG_edges_df.csv",
             "{dir}/output_gen/graph/WG_AbundanceDistribution.png",
             "{dir}/output_gen/graph/WG_FoodFrequencyDistribution.png", 
-            "{dir}/output_gen/compound_report.html",
+            "{dir}/output_gen/food_compound_report.html",
             "{dir}/output_gen/graph/network_summary.txt"
 
     rule CreateFoodMetadata_gen:
@@ -236,7 +236,7 @@ if GENOME:
     
     rule CreateCompoundReport_gen:
         input: node_file = "{dir}/output_gen/graph/WG_nodes_df.csv"
-        output: o = "{dir}/output_gen/compound_report.html"
+        output: o = "{dir}/output_gen/food_compound_report.html"
         shell: 
             """
             python src/WholeGenome_proc/RenderCompoundAnalysis.py \

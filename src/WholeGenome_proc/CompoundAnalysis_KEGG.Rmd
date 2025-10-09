@@ -23,7 +23,7 @@ options(scipen = 999)
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 packages <- c("dplyr", "ggplot2", "readr", "cowplot", "thematic", "tidyr",
-              "tibble", "plotly", "rmarkdown")
+              "tibble", "plotly", "rmarkdown", "ggpubr", "stringr")
 
 for (package in packages) {
   if (!require(package, character.only = TRUE)) {
@@ -45,28 +45,29 @@ colnames(hmdb)[1] <- "c_id"
 colnames(meta)[1] <- "c_id"
 meta_clean <- meta %>% 
   filter(origin != 'microbe' & origin != 'none') %>% 
-  mutate(assoc_food = gsub("\\[|\\]|'| ", "", assoc_food)) %>%  # remove [], ', and spaces
+  mutate(assoc_food = gsub("\\[|\\]|'", "", assoc_food)) %>%  # remove [], '
   separate_rows(assoc_food, sep = ",")  # split into multiple rows
+
+meta_clean$assoc_food <- stringr::str_trim(meta_clean$assoc_food)
 ```
 
 Using KEGG, whole genomes of organisms who can be eaten (e.g., plant and animal products) can be used to predict compounds that may have been present in the food at the time of consumption. While this is a general approach it can cover all basis and is not dependent on the preparation of the food (e.g., canned, frozen) or the quality of the food (e.g., ripe).
 
+<center>
 ```{r}
 # pi chart of all compounds 
 meta_clean %>% 
   group_by(assoc_food) %>% 
-  count(assoc_food) %>% 
-  ggplot(aes(x = "",y = n, fill = assoc_food)) + 
-    geom_bar(stat="identity", width=1) +
-    coord_polar("y", start=0) +
-    geom_text(aes(label = n),
-              position = position_stack(vjust = 0.5)) +
-    theme_void() +
-    theme(legend.position = "bottom", 
-          plot.title = element_text(hjust = 0.5), 
-          legend.title = element_blank()) +
-    ggtitle("Total Number of Compounds Per\nFood Item")
+  count(assoc_food) -> plot_df 
+
+plot_ly(data = plot_df, 
+        labels = ~assoc_food, 
+        values = ~n, 
+        type = "pie", 
+        sort = F) %>% 
+  layout(title = "Number of Compounds Per Food Item")
 ```
+</center>
 
 ## Detailed Results {.tabset}
 
@@ -97,24 +98,24 @@ compound_summary %>%
   count(groups, name = "unique_count") -> unique_compounds 
 
 # plot unique compounds and summary stats 
-  ggplot(unique_compounds, aes(x = reorder(groups, unique_count), y = unique_count)) + 
-    geom_bar(stat = "identity") + 
-    labs(x = "Food Item", 
-         y = "Number of Compounds Unique to Food Item") + 
-    theme_bw() + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    annotate("text", 
-             x = 1, 
-             y = max(unique_compounds$unique_count) - median(unique_compounds$unique_count) , 
-             label = paste0("Numer of Shared Compounds: ", shared_count$shared_count,
-                            "\n\nThe Following Statistics are on the \nNumber of Unique Compounds",
-                            "\nMean \u00B1 SD: ", round(mean(unique_compounds$unique_count), 2), 
-                                "\u00B1", round(sd(unique_compounds$unique_count), 2), 
-                            "\nMedian: ", round(median(unique_compounds$unique_count), 2), 
-                            "\nRange: ", round(range(unique_compounds$unique_count)[1], 2), "-", 
-                                round(range(unique_compounds$unique_count)[2], 2)
-                            )
-             )
+ggplot(unique_compounds, aes(x = reorder(groups, unique_count), y = unique_count)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "Food Item", 
+       y = "Number of Compounds Unique to Food Item") + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+  annotate("text", 
+           x = length(unique_compounds$groups)/4, 
+           y = max(unique_compounds$unique_count)/2 , 
+           label = paste0("Numer of Shared Compounds: ", shared_count$shared_count,
+                          "\n\nThe Following Statistics are on the \nNumber of Unique Compounds",
+                          "\nMean \u00B1 SD: ", round(mean(unique_compounds$unique_count), 2), 
+                              "\u00B1", round(sd(unique_compounds$unique_count), 2), 
+                          "\nMedian: ", round(median(unique_compounds$unique_count), 2), 
+                          "\nRange: ", round(range(unique_compounds$unique_count)[1], 2), "-", 
+                              round(range(unique_compounds$unique_count)[2], 2)
+                          )
+           )
 ```
 
 ### Taxonomic Classification of Compounds 
@@ -137,7 +138,7 @@ joined %>%
     theme_bw() + 
     theme(legend.title = element_blank(), 
           axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab("name") + 
+    xlab("") + 
     ylab("Taxonomy Super Class ")
 ```
 
@@ -150,7 +151,7 @@ joined %>%
     theme_bw() + 
     theme(legend.title = element_blank(), 
           axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab("name") + 
+    xlab("") + 
     ylab("Taxonomy Class ")
 ```
 
