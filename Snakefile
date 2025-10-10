@@ -25,8 +25,8 @@ print(f"  Abundance Col: {ABUNDANCE_COL}")
 # -----------------------------------
 rule all:
     input:
-        (expand("{dir}/output_met/graph/network_summary.txt", dir=DIRECTORIES) if METABOLOME else []),
-        (expand("{dir}/output_gen/graph/network_summary.txt", dir=DIRECTORIES) if GENOME else [])
+        (expand("{dir}/output_met/microbe_compound_report.html", dir=DIRECTORIES) if METABOLOME else []),
+        (expand("{dir}/output_gen/microbe_compound_report.html", dir=DIRECTORIES) if GENOME else [])
 
 # ---------------------------
 # Metabolome rules
@@ -131,6 +131,21 @@ if METABOLOME:
                 {params.org_flag} \
                 --a {params.abundance} \
                 --o {params.graph_dir}
+            """
+    
+    rule MicrobeCompoundReport_met:
+        input:
+            nodes = "{dir}/output_met/graph/M_nodes_df.csv",
+            edges = "{dir}/output_met/graph/M_edges_df.csv"
+        output:
+            report = "{dir}/output_met/microbe_compound_report.html"
+        conda: "DMnet_env.yaml"
+        shell:
+            """
+            python src/RenderCompoundAnalysis_Microbe.py \
+                --node_file {input.nodes} \
+                --edge_file {input.edges} \
+                --output {output.report}
             """
 
 # ---------------------------
@@ -242,4 +257,19 @@ if GENOME:
             python src/WholeGenome_proc/RenderCompoundAnalysis.py \
                 --node_file {input.node_file} \
                 --output {output.o}
+            """
+    
+    rule MicrobeCompoundReport_gen:
+        input:
+            nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
+            edges = "{dir}/output_gen/graph/WG_edges_df.csv"
+        output:
+            report = "{dir}/output_gen/microbe_compound_report.html"
+        conda: "DMnet_env.yaml"
+        shell:
+            """
+            python src/RenderCompoundAnalysis_Microbe.py \
+                --node_file {input.nodes} \
+                --edge_file {input.edges} \
+                --output {output.report}
             """

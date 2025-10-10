@@ -186,8 +186,9 @@ my_directory/
         ├──a_file_for_every_food.txt
         └──joined.txt
     ├──food_item_kos.csv
-    └──compound_report.html
-├──output_met/
+    ├──microbe_compound_report.html
+    └──food_compound_report.html
+└──output_met/
     ├──AMON_output/
         ├──AMON_log.txt
         ├──gene_set_1_enrichment.tsv
@@ -203,10 +204,12 @@ my_directory/
         ├──M_AbundanceDistribution.png
         └──M_FoodFrequencyDistribution.png
     ├──food_meta.csv
-    └──compound_report.html
+    ├──microbe_compound_report.html
+    └──food_compound_report.html
 ```
 
 - output_gen and output_met are outputs created from whole genome and metabolome methods respectively
 - in output_gen/org_KO file there will be as many text files as there are food items (this is represented by *a_file_for_every_food.txt* )
 - graph outputs include node and edge dataframes as well as histograms of node and edge weights if those were included 
-- compound_report.html gives information on the compounds found in each food 
+- food_compound_report.html gives information on the compounds found in each food 
+- microbe_compound_report.html gives information on the compounds predicted to be created by microbes

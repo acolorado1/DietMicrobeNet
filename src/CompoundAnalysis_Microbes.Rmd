@@ -1,0 +1,305 @@
+---
+title: "Summary of Microbe Associated Compounds"
+date: "`r Sys.Date()`"
+params:
+  node_file: "default_node.csv"
+  edge_file: "default_edge.csv"
+---
+
+```{css, echo=FALSE}
+h1, h2, h3, h4 {
+  text-align: center;
+}
+```
+
+```{r, setup, echo = F}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = T, echo = F, 
+                      fig.align = "center")
+options(scipen = 999)
+```
+
+```{r}
+# load necessary packages 
+# Set CRAN mirror for non-interactive installation
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+packages <- c("dplyr", "ggplot2", "readr", "cowplot", "thematic", "tidyr",
+              "tibble", "plotly", "rmarkdown", "ggpubr", "stringr", "forcats")
+
+for (package in packages) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+    library(package, character.only = TRUE)
+  }
+}
+```
+
+```{r}
+# make a function to calculte jaccard similarity between food items
+jaccard_similarity <- function(food1, food2){ 
+  intersection <- length(intersect(food1, food2))
+  union <- length(food1) + length(food2) - intersection
+  return(intersection/union)
+}
+```
+
+```{r}
+# get data 
+hmdb <- read_csv("../Data/hmdb.csv")
+nodes <- read_csv(params$node_file)
+edges <- read_csv(params$edge_file)
+
+# clean node file 
+microbe_comps <- nodes %>% 
+  filter(origin != 'food' & origin != 'none') %>% 
+  mutate(assoc_food = gsub("\\[|\\]|'", "", assoc_food)) %>%  # remove [], '
+  separate_rows(assoc_food, sep = ",")  # split into multiple rows
+microbe_comps$assoc_food <- stringr::str_trim(microbe_comps$assoc_food)
+
+# subset edge columns 
+edges_subset <- edges %>% 
+  select(compound2, organisms)
+colnames(edges_subset)[1] <- "compound"
+
+# merge node and edge data 
+microbe_comps <- microbe_comps %>% 
+  left_join(edges_subset, by = "compound", relationship = "many-to-many") %>% 
+  mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%  # remove [], '
+  separate_rows(organisms, sep = ",")  # split into multiple rows
+microbe_comps$organisms <- stringr::str_trim(microbe_comps$organisms)
+
+# merge hmdb information 
+colnames(hmdb)[1] <- "compound"
+meta <- microbe_comps %>% 
+  left_join(hmdb, by = "compound", relationship = "many-to-many")
+```
+
+Here are visuals to aid in understanding compounds that microbes are predicted to have created. These compounds are located in the nodes and edges file that are generated in the graph creation portion of the pipeline. Compounds included are those with origin "microbe" or "both", the latter being both microbe or food originating. This report is broken up into three sections: (1) understanding compounds being produced by a genus; (2) understanding compounds being produced by species; (3) understanding compounds that can come from both microbes and food and the genus and species level.
+
+## Production of Compounds by Genera {.tabset}
+
+### Distinct Compounds 
+
+<center>
+```{r}
+# separate genus and species 
+taxonomy_meta <- meta %>% 
+  select(compound, organisms, taxonomy_super_class, taxonomy_class) %>% 
+  distinct(compound, organisms, .keep_all = T) %>% #there could be repetes due to food items
+  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
+                       too_few = "align_start", too_many = "merge", cols_remove = F)
+taxonomy_meta %>% 
+  group_by(genus) %>% 
+  summarise(n_compounds = n_distinct(compound)) %>% 
+  mutate(genus = fct_reorder(genus, n_compounds)) %>% 
+  ggplot(aes(x = genus, y = n_compounds)) + 
+    geom_bar(stat = "identity") + 
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    xlab("") +
+    ylab("Number Unique of Compounds") -> p 
+
+ggplotly(p)
+```
+</center>
+
+### Compound Taxonomy 
+
+<center>
+```{r}
+taxonomy_meta %>% 
+  count(genus, taxonomy_super_class) %>% 
+  ggplot(aes(y=taxonomy_super_class, x=genus)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    theme(axis.text.x = element_blank()) + 
+    xlab("Genus") + 
+    ylab("Taxonomy Super Class ") -> p 
+
+ggplotly(p)
+```
+
+```{r}
+taxonomy_meta %>% 
+  count(genus, taxonomy_class) %>% 
+  ggplot(aes(y=taxonomy_class, x=genus)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    theme(axis.text.x = element_blank()) + 
+    xlab("Genus") + 
+    ylab("Taxonomy Class ") -> p 
+
+ggplotly(p)
+```
+</center>
+
+### Similarity Metrics 
+
+<center>
+```{r}
+# must remove NAs for this portion 
+jaccard_df <- taxonomy_meta %>% 
+  select(compound, genus) %>% 
+  na.omit()
+
+# get list of food items
+genera <- unique(jaccard_df$genus)
+
+# precompute compound lists for each genus (for speed)
+genus_compounds <- lapply(genera, function(g) {
+  unique(jaccard_df$compound[jaccard_df$genus == g])
+})
+names(genus_compounds) <- genera
+
+# initialize empty matrix
+n <- length(genera)
+jaccard_matrix <- matrix(NA, nrow = n, ncol = n,
+                         dimnames = list(genera, genera))
+
+# compute only lower triangle
+for (i in seq_along(genera)) {
+  for (j in seq_len(i)) {  # compute only for j ≤ i
+    genus1 <- genera[i]
+    genus2 <- genera[j]
+    
+    score <- jaccard_similarity(genus_compounds[[genus1]], genus_compounds[[genus2]])
+    
+    jaccard_matrix[i, j] <- score
+    jaccard_matrix[j, i] <- score  # mirror to upper triangle
+  }
+}
+
+# create a long format for matrix
+jaccard_long <- as.data.frame(jaccard_matrix) %>% 
+  rownames_to_column(var = "Row") %>% 
+  pivot_longer(cols = -Row, names_to = "Column", values_to = "Value")
+
+# visualize matrix
+ggplot(jaccard_long, aes(x = Column, y = Row, fill = Value)) +
+  geom_tile() + 
+  scale_fill_gradient(low = "lightblue", high = "darkblue") + 
+  labs(title = "Jaccard Matrix Heatmap", x = "Genus", y = "Genus", fill = "Simiarity Score") +
+  theme_bw() + 
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(hjust = 0.5)) -> p
+
+plotly::ggplotly(p)
+```
+</center>
+
+## Production of Compounds by Species {.tabset}
+
+### Distinct Compounds 
+
+<center>
+```{r}
+taxonomy_meta %>% 
+  group_by(species) %>% 
+  summarise(NumberOfCompounds = n_distinct(compound)) %>% 
+  mutate(species = fct_reorder(species, NumberOfCompounds)) -> p_df 
+  
+ggplot(p_df, aes(x = species, y = NumberOfCompounds)) + 
+  geom_bar(stat = "identity") + 
+  theme_bw() +
+  theme(axis.text.x = element_blank()) + 
+  xlab("Species") +
+  ylab("Number of Compounds") + 
+  annotate("text", 
+         x = length(p_df$species)/4, 
+         y = max(p_df$NumberOfCompounds)/2 , 
+         label = paste0("Numer of Species: ", length(p_df$species),
+                        "\nMean \u00B1 SD: ", round(mean(p_df$NumberOfCompounds), 2), 
+                            "\u00B1", round(sd(p_df$NumberOfCompounds), 2), 
+                        "\nMedian: ", round(median(p_df$NumberOfCompounds), 2), 
+                        "\nRange: ", round(range(p_df$NumberOfCompounds)[1], 2), "-", 
+                            round(range(p_df$NumberOfCompounds)[2], 2)
+                        )
+         )-> p 
+
+ggplotly(p)
+```
+</center>
+
+### Top 10% of Producers
+
+<center>
+```{r}
+perc10 <- round(length(p_df$species)*0.1, 0) # get a number for 10%
+p_df_filter <- head(p_df, perc10)            # filter for top 10%
+perc10species<- p_df_filter$species          # get list of top 10% species
+
+taxonomy_meta %>% 
+  dplyr::filter(species %in% perc10species) %>% 
+  count(species, taxonomy_super_class) %>% 
+  ggplot(aes(y=taxonomy_super_class, x=species)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    xlab("") + 
+    ylab("Taxonomy Super Class ") -> p1
+
+taxonomy_meta %>% 
+  dplyr::filter(species %in% perc10species) %>% 
+  count(species, taxonomy_class) %>% 
+  ggplot(aes(y=taxonomy_class, x=species)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    xlab("") + 
+    ylab("Taxonomy Class ") -> p2
+
+ggplotly(p1)
+ggplotly(p2)
+```
+</center>
+
+## Identifying Compounds Both Microbes and Food Produce {.tabset}
+
+```{r}
+tax_food_meta <- meta %>% 
+  select(compound, organisms, assoc_food, taxonomy_super_class, taxonomy_class) %>% 
+  distinct(compound, organisms, assoc_food, .keep_all = T) %>% 
+  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
+                       too_few = "align_start", too_many = "merge", cols_remove = F)
+```
+
+### Genera x Food Items 
+
+<center>
+```{r, fig.height=20}
+tax_food_meta %>% 
+  group_by(genus, assoc_food) %>% 
+  summarise(n_compound = n_distinct(compound)) %>% 
+  ggplot(aes(x = assoc_food, y = genus, fill = n_compound)) + 
+    geom_tile() + 
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    xlab("Food Item") + 
+    ylab("Genus") -> p 
+
+ggplotly(p)
+```
+</center>
+
+### Species x Food Items
+ 
+ <center>
+```{r, fig.height=60}
+tax_food_meta %>% 
+  group_by(species, assoc_food) %>% 
+  summarise(n_compound = n_distinct(compound)) %>% 
+  ggplot(aes(x = assoc_food, y = species, fill = n_compound)) + 
+    geom_tile() + 
+    theme_bw() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+    xlab("Food Item") + 
+    ylab("Species") -> p 
+
+ggplotly(p)
+```
+</center>
