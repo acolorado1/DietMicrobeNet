@@ -1,6 +1,8 @@
 import argparse
 import subprocess
-import shlex
+import json
+import tempfile
+import os
 
 def main():
     parser = argparse.ArgumentParser(description="Wrapper for Snakemake workflow")
@@ -13,6 +15,9 @@ def main():
     parser.add_argument("--n-weights", action="store_true", help="Enable N weights")
     parser.add_argument("--include-orgs", action="store_true", help="Include organisms")
     parser.add_argument("--abundance-col", type=str, default="Abundance_RPKs", help="Column name for abundance")
+    parser.add_argument('--uri', type=str, required=True, help='Neo4j URI instance')
+    parser.add_argument('--user', type=str, required=True, help='Neo4j username for instance')
+    parser.add_argument('--p', type=str, required=True, help='Neo4j password for instance')
 
     # Snakemake execution options
     parser.add_argument("--cores", type=int, default=1, help="Number of cores to use")
@@ -21,25 +26,30 @@ def main():
 
     args = parser.parse_args()
 
-    # Build config dictionary for Snakemake
+    # Convert directories list to comma-separated string
+    directories_str = ",".join(args.directories)
+
+    # Prepare config dict
     config_args = {
-        "directories": args.directories,
+        "directories": directories_str,
         "metabolome": args.metabolome,
         "genome": args.genome,
         "e_weights": args.e_weights,
         "n_weights": args.n_weights,
         "include_orgs": args.include_orgs,
         "abundance_col": args.abundance_col,
+        "uri": args.uri,
+        "user": args.user,
+        "p": args.p,
     }
 
-    # Convert config dict into CLI string
-    config_str = " ".join(
-        f'{key}="{value}"' if not isinstance(value, list) else f'{key}="{value}"'
-        for key, value in config_args.items()
-    )
+    # ✅ Write config to a temporary JSON file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+        json.dump(config_args, tmp, indent=2)
+        tmp_path = tmp.name
 
-    # Base snakemake command
-    cmd = f"snakemake --snakefile Snakefile --cores {args.cores} --config {config_str}"
+    # Base Snakemake command using --configfile (safe for all characters)
+    cmd = f"snakemake --snakefile Snakefile --cores {args.cores} --configfile {tmp_path}"
 
     # Optional flags
     if args.profile:
@@ -47,10 +57,16 @@ def main():
     if args.dry_run:
         cmd += " -n"
 
-    print("Running:", cmd)
+    print("🚀 Running Snakemake command:")
+    print(cmd)
+    print(f"🧾 Using config file: {tmp_path}")
 
-    # Run snakemake
-    subprocess.run(shlex.split(cmd), check=True)
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    finally:
+        # Clean up temp config file
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 if __name__ == "__main__":
     main()
