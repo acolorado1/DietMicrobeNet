@@ -24,6 +24,7 @@ dependencies:
   - pandoc
   - coin-or-cbc
   - snakemake
+  - tqdm
   - pip:
     - AMON-bio
     - lxml
