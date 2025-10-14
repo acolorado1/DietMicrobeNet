@@ -31,10 +31,8 @@ print(f"  Neo4j password: {PASSWORD}")
 # -----------------------------------
 rule all:
     input:
-        (expand("{dir}/output_met/microbe_compound_report.html", dir=DIRECTORIES) if METABOLOME else []),
-        (expand("{dir}/output_met/graph/graph_results.csv", dir=DIRECTORIES) if METABOLOME else []),
-        (expand("{dir}/output_gen/microbe_compound_report.html", dir=DIRECTORIES) if GENOME else []),
-        (expand("{dir}/output_gen/graph/graph_results.csv", dir=DIRECTORIES) if GENOME else [])
+        (expand("{dir}/output_met/graph/graph_results_report.html", dir=DIRECTORIES) if METABOLOME else []),
+        (expand("{dir}/output_gen/graph/graph_results_report.html", dir=DIRECTORIES) if GENOME else [])
 
 
 # ---------------------------
@@ -51,7 +49,9 @@ if METABOLOME:
             "{dir}/output_met/graph/M_edges_df.csv",
             "{dir}/output_met/graph/M_AbundanceDistribution.png",
             "{dir}/output_met/graph/M_FoodFrequencyDistribution.png", 
-            "{dir}/output_met/graph/network_summary.txt"
+            "{dir}/output_met/graph/network_summary.txt",
+            "{dir}/output_met/microbe_compound_report.html",
+            "{dir}/output_met/graph/graph_results.csv"
 
     rule CreateFoodMetadata_met:
         input: f_file = "{dir}/foodb_foods_dataframe.csv"
@@ -178,6 +178,17 @@ if METABOLOME:
                 --user {params.user} \
                 --o {output.output}
             """
+        
+    rule PatternReport_met: 
+        input: graph_res = "{dir}/output_met/graph/graph_results.csv"
+        output: output = "{dir}/output_met/graph/graph_results_report.html"
+        conda: "DMnet_env.yaml"
+        shell: 
+            """
+            python src/RenderGraphResults_Report.py \
+                --patterns {input.graph_res} \
+                --output {output.output}
+            """
 
 # ---------------------------
 # Genome rules
@@ -195,7 +206,9 @@ if GENOME:
             "{dir}/output_gen/graph/WG_AbundanceDistribution.png",
             "{dir}/output_gen/graph/WG_FoodFrequencyDistribution.png", 
             "{dir}/output_gen/food_compound_report.html",
-            "{dir}/output_gen/graph/network_summary.txt"
+            "{dir}/output_gen/graph/network_summary.txt",
+            "{dir}/output_gen/microbe_compound_report.html",
+            "{dir}/output_gen/graph/graph_results.csv"
 
     rule CreateFoodMetadata_gen:
         input: kegg_orgs = "{dir}/kegg_organisms_dataframe.csv"
@@ -325,4 +338,15 @@ if GENOME:
                 --p {params.password} \
                 --user {params.user} \
                 --o {output.output}
+            """
+    
+    rule PatternReport_gen: 
+        input: graph_res = "{dir}/output_gen/graph/graph_results.csv"
+        output: output = "{dir}/output_gen/graph/graph_results_report.html"
+        conda: "DMnet_env.yaml"
+        shell: 
+            """
+            python src/RenderGraphResults_Report.py \
+                --patterns {input.graph_res} \
+                --output {output.output}
             """

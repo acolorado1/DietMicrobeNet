@@ -20,6 +20,7 @@ dependencies:
   - r-tibble
   - r-plotly
   - r-argparse
+  - r-BiocManager
   - streamlit
   - pandoc
   - coin-or-cbc
