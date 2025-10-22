@@ -4,6 +4,8 @@ The purpose of this code will be to create a metabolic network where nodes repre
 
 ## Install 
 
+Go to [Neo4j desktop installer](https://neo4j.com/download/?utm_source=GSearch&utm_medium=PaidSearch&utm_campaign=Evergreen&utm_content=AMS-Search-SEMBrand-Evergreen-None-SEM-SEM-NonABM&utm_term=neo4j%20desktop%20install&utm_adgroup=download&gad_source=1&gad_campaignid=20973570619&gbraid=0AAAAADk9OYoJzxpe1-kzvZ1aS0EAslXbj&gclid=CjwKCAjw3tzHBhBREiwAlMJoUooNEY8JhRyjOd7aWXTRNepkZ7u1sM8-3jbhalXoUxfQBAUomxM2PxoCrm8QAvD_BwE), create an account, and make an instance. **YOU MUST KEEP TRACK OF YOUR URI, USERNAME, AND PASSWORD.**
+
 In the terminal, go to directory of choice and clone this repo:
 
 ```
@@ -106,7 +108,8 @@ Both *foodb_foods_dataframe.csv* and *kegg_organisms_dataframe.csv* are the CSVs
 Here is a list of required and optional arguments that can be accessed by typing **python run_workflow.py -h**:
 
 ```
-usage: run_workflow.py [-h] --directories DIRECTORIES [DIRECTORIES ...] [--metabolome] [--genome] [--e-weights] [--n-weights] [--include-orgs] [--abundance-col ABUNDANCE_COL] [--cores CORES] [--profile PROFILE] [--dry-run]
+usage: run_workflow.py [-h] --directories DIRECTORIES [DIRECTORIES ...] [--metabolome] [--genome] [--e-weights] [--n-weights] [--include-orgs]
+                       [--abundance-col ABUNDANCE_COL] --uri URI --user USER --p P [--cores CORES] [--profile PROFILE] [--dry-run]
 
 Wrapper for Snakemake workflow
 
@@ -121,6 +124,9 @@ options:
   --include-orgs        Include organisms
   --abundance-col ABUNDANCE_COL
                         Column name for abundance
+  --uri URI             Neo4j URI instance
+  --user USER           Neo4j username for instance
+  --p P                 Neo4j password for instance
   --cores CORES         Number of cores to use
   --profile PROFILE     Snakemake profile to use
   --dry-run, -n         Perform a dry-run
@@ -130,6 +136,7 @@ Things to know about the arguments:
 
  - directories should be separated by a space (see Example Usage #1)
  - metabolome, genome, e-weights, n-weights, and include-orgs should only be included if they are wanted (see Example Usage #1 and #2)
+ - uri, user, and p are parameters necessary for Neo4j query, must start an instance in your own Neo4j account 
  - cores, profiles, and dry-run are Snakemake specific arguments (see [Snakemake's official documentation](https://snakemake.readthedocs.io/en/stable/executing/cli.html))
 
 #### Example Usage #1
@@ -181,7 +188,10 @@ my_directory/
         ├──WG_edges_df.csv
         ├──WG_nodes_df.csv
         ├──WG_AbundanceDistribution.png
-        └──WG_FoodFrequencyDistribution.png
+        ├──WG_FoodFrequencyDistribution.png
+        ├──network_summary.txt
+        ├──graph_results.csv
+        └──graph_results_report.html
     ├──org_KO/
         ├──a_file_for_every_food.txt
         └──joined.txt
@@ -202,7 +212,10 @@ my_directory/
         ├──M_edges_df.csv
         ├──M_nodes_df.csv
         ├──M_AbundanceDistribution.png
-        └──M_FoodFrequencyDistribution.png
+        ├──M_FoodFrequencyDistribution.png
+        ├──network_summary.txt
+        ├──graph_results.csv
+        └──graph_results_report.html
     ├──food_meta.csv
     ├──microbe_compound_report.html
     └──food_compound_report.html
@@ -210,6 +223,6 @@ my_directory/
 
 - output_gen and output_met are outputs created from whole genome and metabolome methods respectively
 - in output_gen/org_KO file there will be as many text files as there are food items (this is represented by *a_file_for_every_food.txt* )
-- graph outputs include node and edge dataframes as well as histograms of node and edge weights if those were included 
+- graph outputs include node and edge dataframes as well as histograms of node and edge weights if those were included. It also includes Neo4j query results and a report.  
 - food_compound_report.html gives information on the compounds found in each food 
 - microbe_compound_report.html gives information on the compounds predicted to be created by microbes
