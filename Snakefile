@@ -141,21 +141,21 @@ if METABOLOME:
                 --a {params.abundance} \
                 --o {params.graph_dir}
             """
-    
-    rule MicrobeCompoundReport_met:
-        input:
-            nodes = "{dir}/output_met/graph/M_nodes_df.csv",
-            edges = "{dir}/output_met/graph/M_edges_df.csv"
-        output:
-            report = "{dir}/output_met/microbe_compound_report.html"
-        conda: "DMnet_env.yaml"
-        shell:
-            """
-            python src/RenderCompoundAnalysis_Microbe.py \
-                --node_file {input.nodes} \
-                --edge_file {input.edges} \
-                --output {output.report}
-            """
+    if INCLUDE_ORGS and N_WEIGHTS: 
+        rule MicrobeCompoundReport_met:
+            input:
+                nodes = "{dir}/output_met/graph/M_nodes_df.csv",
+                edges = "{dir}/output_met/graph/M_edges_df.csv"
+            output:
+                report = "{dir}/output_met/microbe_compound_report.html"
+            conda: "DMnet_env.yaml"
+            shell:
+                """
+                python src/RenderCompoundAnalysis_Microbe.py \
+                    --node_file {input.nodes} \
+                    --edge_file {input.edges} \
+                    --output {output.report}
+                """
     
     rule RunNeo4j_met: 
         input: 
@@ -303,20 +303,21 @@ if GENOME:
                 --output {output.o}
             """
     
-    rule MicrobeCompoundReport_gen:
-        input:
-            nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
-            edges = "{dir}/output_gen/graph/WG_edges_df.csv"
-        output:
-            report = "{dir}/output_gen/microbe_compound_report.html"
-        conda: "DMnet_env.yaml"
-        shell:
-            """
-            python src/RenderCompoundAnalysis_Microbe.py \
-                --node_file {input.nodes} \
-                --edge_file {input.edges} \
-                --output {output.report}
-            """
+    if INCLUDE_ORGS and N_WEIGHTS:
+        rule MicrobeCompoundReport_gen:
+            input:
+                nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
+                edges = "{dir}/output_gen/graph/WG_edges_df.csv"
+            output:
+                report = "{dir}/output_gen/microbe_compound_report.html"
+            conda: "DMnet_env.yaml"
+            shell:
+                """
+                python src/RenderCompoundAnalysis_Microbe.py \
+                    --node_file {input.nodes} \
+                    --edge_file {input.edges} \
+                    --output {output.report}
+                """
     
     rule RunNeo4j_gen: 
         input: 
