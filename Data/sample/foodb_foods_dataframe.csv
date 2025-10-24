@@ -1,0 +1,19 @@
+id,name,name_scientific,food_frequency
+16,Peanut,Arachis hypogaea,8
+54,Lemon,Citrus limon,8
+106,Mango,Mangifera indica,8
+125,Rice,Oryza sativa,7
+130,Avocado,Persea americana,2
+141,Common pea,Pisum sativum,7
+175,Potato,Solanum tuberosum,3
+204,Common grape,Vitis vinifera,3
+205,Corn,Zea mays,14
+245,Carrot,Daucus carota ssp. sativus,8
+308,Northern bluefin tuna,Thunnus thynnus,5
+328,Cassava,Manihot esculenta,7
+334,Chicken,Gallus gallus,2
+506,"Cattle (Beef, Veal)",Bos taurus,2
+631,Cheese,,2
+633,Eggs,,2
+667,Butter,,3
+730,Baked beans,,2
