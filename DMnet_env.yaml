@@ -362,7 +362,6 @@ dependencies:
       - cycler==0.12.1
       - fonttools==4.59.0
       - frozenlist==1.7.0
-      - get-foods==0.0.0
       - graphdatascience==1.16
       - h5py==3.14.0
       - kegg-parser==0.0.12
