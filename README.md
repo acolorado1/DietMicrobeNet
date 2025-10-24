@@ -134,33 +134,12 @@ options:
 
 Things to know about the arguments: 
 
- - directories should be separated by a space (see Example Usage #1)
- - metabolome, genome, e-weights, n-weights, and include-orgs should only be included if they are wanted (see Example Usage #1 and #2)
+ - directories should be separated by a space 
+ - metabolome, genome, e-weights, n-weights, and include-orgs should only be included if they are wanted 
  - uri, user, and p are parameters necessary for Neo4j query, must start an instance in your own Neo4j account 
  - cores, profiles, and dry-run are Snakemake specific arguments (see [Snakemake's official documentation](https://snakemake.readthedocs.io/en/stable/executing/cli.html))
 
-#### Example Usage #1
-
-Running with two directories, metabolome, genome and only including edge weights. 
-
-```
-python run_workflow.py \                                                    
---directories /path/to/dir1 /path/to/dir2 \
---metabolome \
---genome \
---e-weights
-```
-
-#### Example Usage #2
-
-Running with one directory, only metabolome, no node or edge weights, using multiple cores 
-
-```
-python run_workflow.py \                                                    
---directories /Users/burkhang/Desktop/Zim_snakes/F_Exp/ZIM091_A \
---metabolome \
---cores 4
-```
+See [Wiki Scenarios](https://github.com/acolorado1/DietMicrobeNet/wiki/Running-DietMicrobeNet#running-dietmicrobenet) for examples.
 
 ### Outputs 
 
