@@ -204,4 +204,4 @@ my_directory/
 - in output_gen/org_KO file there will be as many text files as there are food items (this is represented by *a_file_for_every_food.txt* )
 - graph outputs include node and edge dataframes as well as histograms of node and edge weights if those were included. It also includes Neo4j query results and a report.  
 - food_compound_report.html gives information on the compounds found in each food 
-- microbe_compound_report.html gives information on the compounds predicted to be created by microbes
+- microbe_compound_report.html gives information on the compounds predicted to be created by microbes, but will only be created if both organism information and read abundance information is provided
