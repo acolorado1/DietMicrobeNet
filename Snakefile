@@ -109,23 +109,22 @@ if METABOLOME:
                 --save_entries
             """
 
-
     rule GraphCreation_met:
         input: 
             f_meta = "{dir}/output_met/food_meta.csv",
             rn_json = "{dir}/output_met/AMON_output/rn_dict.json",
             m_meta = "{dir}/ko_taxonomy_abundance.csv"
         params:
-            n_weights_flag = "--n_weights" if N_WEIGHTS else "",
-            e_weights_flag = "--e_weights" if E_WEIGHTS else "",
-            org_flag = "--org" if INCLUDE_ORGS else "",
+            flags = " ".join(filter(None, [
+                "--n_weights" if N_WEIGHTS else "",
+                "--e_weights" if E_WEIGHTS else "",
+                "--org" if INCLUDE_ORGS else ""
+            ])),
             abundance = ABUNDANCE_COL,
             graph_dir = "{dir}/output_met/graph/"
         output:
             nodes = "{dir}/output_met/graph/M_nodes_df.csv",
             edges = "{dir}/output_met/graph/M_edges_df.csv",
-            a_dis = "{dir}/output_met/graph/M_AbundanceDistribution.png",
-            f_dis = "{dir}/output_met/graph/M_FoodFrequencyDistribution.png",
             summary = "{dir}/output_met/graph/network_summary.txt"
         conda: "DMnet_env.yaml"
         shell:
@@ -135,12 +134,11 @@ if METABOLOME:
                 --f {input.f_meta} \
                 --r {input.rn_json} \
                 --m_meta {input.m_meta} \
-                {params.n_weights_flag} \
-                {params.e_weights_flag} \
-                {params.org_flag} \
+                {params.flags} \
                 --a {params.abundance} \
                 --o {params.graph_dir}
             """
+
     if INCLUDE_ORGS and N_WEIGHTS: 
         rule MicrobeCompoundReport_met:
             input:
@@ -259,23 +257,23 @@ if GENOME:
                 --save_entries
             """
     
-    rule GraphCreation_gen: 
+    rule GraphCreation_gen:
         input: 
             f_meta = "{dir}/output_gen/food_item_kos.csv",
             m_meta = "{dir}/ko_taxonomy_abundance.csv",
             mapper = "{dir}/output_gen/AMON_output/kegg_mapper.tsv", 
             rn_json = "{dir}/output_gen/AMON_output/rn_dict.json"
         params: 
-            n_weights_flag = "--n_weights" if N_WEIGHTS else "",
-            e_weights_flag = "--e_weights" if E_WEIGHTS else "",
-            org_flag = "--org" if INCLUDE_ORGS else "",
+            flags = " ".join(filter(None, [
+                "--n_weights" if N_WEIGHTS else "",
+                "--e_weights" if E_WEIGHTS else "",
+                "--org" if INCLUDE_ORGS else ""
+            ])),
             abundance = ABUNDANCE_COL,
             graph_dir = "{dir}/output_gen/graph/"
         output:
             nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
             edges = "{dir}/output_gen/graph/WG_edges_df.csv",
-            a_dis = "{dir}/output_gen/graph/WG_AbundanceDistribution.png",
-            f_dis = "{dir}/output_gen/graph/WG_FoodFrequencyDistribution.png",
             summary = "{dir}/output_gen/graph/network_summary.txt"
         conda: "DMnet_env.yaml"
         shell: 
@@ -286,12 +284,11 @@ if GENOME:
                 --m_meta {input.m_meta} \
                 --mapper {input.mapper} \
                 --rn_json {input.rn_json} \
-                {params.n_weights_flag} \
-                {params.e_weights_flag} \
+                {params.flags} \
                 --a {params.abundance} \
-                {params.org_flag} \
                 --o {params.graph_dir}
             """
+
     
     rule CreateCompoundReport_gen:
         input: node_file = "{dir}/output_gen/graph/WG_nodes_df.csv"

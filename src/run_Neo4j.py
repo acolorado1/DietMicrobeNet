@@ -37,9 +37,25 @@ def create_edges(tx, df):
              organisms=row["organisms"],
              abundance=row["abundance"])
 
-# === Pattern query ===
-cypher = """
+# === Pattern queries ===
+cypher1 = """
 MATCH (c1:Compound {origin:"food"})-[r:BECOMES]->(c2:Compound {origin:"microbe"})
+RETURN 
+    c1.c_id AS compound1_id,
+    c1.origin AS compound1_origin,
+    c1.assoc_food AS compound1_assoc_food,
+    c1.freq AS compound1_freq,
+    r.reaction AS reaction,
+    r.KOs AS KOs,
+    r.organisms AS organisms,
+    r.abundance AS abundance,
+    c2.c_id AS compound2_id,
+    c2.origin AS compound2_origin,
+    c2.assoc_food AS compound2_assoc_food,
+    c2.freq AS compound2_freq
+"""
+cypher2 = """
+MATCH (c1:Compound {origin:"food"})-[r:BECOMES]->(c2:Compound {origin:"both"})
 RETURN 
     c1.c_id AS compound1_id,
     c1.origin AS compound1_origin,
@@ -88,15 +104,21 @@ def main():
         session.execute_write(create_nodes, nodes_df)
         session.execute_write(create_edges, edges_df)
 
-        print("\n🔍 Running pattern query...")
-        result = session.run(cypher)
-        df = pd.DataFrame([r.data() for r in result])
+        print("\n🔍 Running pattern query 1...")
+        result1 = session.run(cypher1)
+        df1 = pd.DataFrame([r.data() for r in result1])
+
+        print("\n🔍 Running pattern query 2...")
+        result2 = session.run(cypher2)
+        df2 = pd.DataFrame([r.data() for r in result2])
 
     driver.close()
 
     # === Output results ===
-    print(f"\n✅ Query complete. Retrieved {len(df)} relationships.")
-    print(df.head())
+    print(f"\n✅ Queries complete. Retrieved {len(df1)+len(df2)} relationships.")
+    df = pd.concat([df1, df2], 
+                   ignore_index=True,
+                   sort=False)
 
     # === Save results ===
     df.to_csv(args.o, index=False)

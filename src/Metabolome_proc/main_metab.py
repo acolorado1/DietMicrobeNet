@@ -15,11 +15,11 @@ def main():
         help='file path to rn_dict.json AMON output')
     parser.add_argument('--m_meta', type=str, required=True, 
         help='filepath to CSV containing KOs, taxonomy, and abundance information')
-    parser.add_argument('--n_weights', action='store_true', required=True, 
+    parser.add_argument('--n_weights', action='store_true',  
         help='True or False wether node weights (food frequencies) will be used')
-    parser.add_argument('--e_weights', action='store_true', required=True, 
+    parser.add_argument('--e_weights', action='store_true', 
         help='True or False wether edge weights (abundance measures) will be used')
-    parser.add_argument('--org', action='store_true', required=True, 
+    parser.add_argument('--org', action='store_true', 
         help='True or False whether organism information is to be included')
     parser.add_argument('--a', type=str, required=False, default='',
         help='column in microbe metadata corresponding to the abundance information')
