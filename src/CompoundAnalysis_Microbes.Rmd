@@ -20,18 +20,17 @@ options(scipen = 999)
 
 ```{r}
 # load necessary packages 
-# Set CRAN mirror for non-interactive installation
-options(repos = c(CRAN = "https://cloud.r-project.org"))
-
-packages <- c("dplyr", "ggplot2", "readr", "cowplot", "thematic", "tidyr",
-              "tibble", "plotly", "rmarkdown", "ggpubr", "stringr", "forcats")
-
-for (package in packages) {
-  if (!require(package, character.only = TRUE)) {
-    install.packages(package)
-    library(package, character.only = TRUE)
-  }
-}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(thematic)
+library(tidyr)
+library(tibble)
+library(plotly)
+library(ggpubr)
+library(stringr)
+library(forcats)
 ```
 
 ```{r}
