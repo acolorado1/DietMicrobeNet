@@ -4,6 +4,7 @@ import os
 
 parser = argparse.ArgumentParser(description="Generate HTML report of graph query results.")
 parser.add_argument("--patterns", default="default.csv", help="Path to the node data file.")
+parser.add_argument("--rxn_json", default="rxn_default.json", help="Path to JSON file created from AMON output.")
 parser.add_argument("--output", default="filepath.html", help="Path to HTML report file")
 args = parser.parse_args()
 
@@ -16,7 +17,7 @@ output_path = os.path.abspath(args.output)
 r_command = f'''
 Rscript -e "rmarkdown::render(
   input = '{rmd_path}',
-  params = list(patterns = '{args.patterns}'),
+  params = list(patterns = '{args.patterns}', reactions =  '{args.rxn_json}'),
   output_file = '{output_path}')"
 '''
 
