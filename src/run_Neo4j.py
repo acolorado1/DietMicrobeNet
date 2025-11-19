@@ -71,6 +71,23 @@ RETURN
     c2.freq AS compound2_freq
 """
 
+cypher3 = """
+MATCH (c1:Compound {origin:"both"})-[r:BECOMES]->(c2:Compound {origin:"both"})
+RETURN 
+    c1.c_id AS compound1_id,
+    c1.origin AS compound1_origin,
+    c1.assoc_food AS compound1_assoc_food,
+    c1.freq AS compound1_freq,
+    r.reaction AS reaction,
+    r.KOs AS KOs,
+    r.organisms AS organisms,
+    r.abundance AS abundance,
+    c2.c_id AS compound2_id,
+    c2.origin AS compound2_origin,
+    c2.assoc_food AS compound2_assoc_food,
+    c2.freq AS compound2_freq
+"""
+
 # === define main ===
 def main(): 
     parser = arg.ArgumentParser(description='Connect to Neo4j, create and query graph')
@@ -104,19 +121,23 @@ def main():
         session.execute_write(create_nodes, nodes_df)
         session.execute_write(create_edges, edges_df)
 
-        print("\n🔍 Running pattern query 1...")
+        print("\n🔍 Running pattern query 1: food -> microbe...")
         result1 = session.run(cypher1)
         df1 = pd.DataFrame([r.data() for r in result1])
 
-        print("\n🔍 Running pattern query 2...")
+        print("\n🔍 Running pattern query 2: food -> both...")
         result2 = session.run(cypher2)
         df2 = pd.DataFrame([r.data() for r in result2])
+
+        print("\n🔍 Running pattern query 3: both -> both...")
+        result3 = session.run(cypher3)
+        df3 = pd.DataFrame([r.data() for r in result3])
 
     driver.close()
 
     # === Output results ===
     print(f"\n✅ Queries complete. Retrieved {len(df1)+len(df2)} relationships.")
-    df = pd.concat([df1, df2], 
+    df = pd.concat([df1, df2, df3], 
                    ignore_index=True,
                    sort=False)
 
