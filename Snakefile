@@ -51,7 +51,8 @@ if METABOLOME:
             "{dir}/output_met/graph/M_FoodFrequencyDistribution.png", 
             "{dir}/output_met/graph/network_summary.txt",
             "{dir}/output_met/microbe_compound_report.html",
-            "{dir}/output_met/graph/graph_results.csv"
+            "{dir}/output_met/graph/graph_results.csv",
+            "{dir}/output_met/graph/graph_results_report.html"
 
     rule CreateFoodMetadata_met:
         input: f_file = "{dir}/foodb_foods_dataframe.csv"
@@ -178,13 +179,17 @@ if METABOLOME:
             """
         
     rule PatternReport_met: 
-        input: graph_res = "{dir}/output_met/graph/graph_results.csv"
-        output: output = "{dir}/output_met/graph/graph_results_report.html"
+        input: 
+            graph_res = "{dir}/output_met/graph/graph_results.csv",
+            rxn_json = "{dir}/output_met/AMON_output/rn_dict.json"
+        output: 
+            output = "{dir}/output_met/graph/graph_results_report.html"
         conda: "DMnet_env.yaml"
         shell: 
             """
             python src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
+                --rxn_json {input.rxn_json} \
                 --output {output.output}
             """
 
@@ -206,7 +211,8 @@ if GENOME:
             "{dir}/output_gen/food_compound_report.html",
             "{dir}/output_gen/graph/network_summary.txt",
             "{dir}/output_gen/microbe_compound_report.html",
-            "{dir}/output_gen/graph/graph_results.csv"
+            "{dir}/output_gen/graph/graph_results.csv", 
+            "{dir}/output_gen/graph/graph_results_report.html"
 
     rule CreateFoodMetadata_gen:
         input: kegg_orgs = "{dir}/kegg_organisms_dataframe.csv"
@@ -339,12 +345,16 @@ if GENOME:
             """
     
     rule PatternReport_gen: 
-        input: graph_res = "{dir}/output_gen/graph/graph_results.csv"
-        output: output = "{dir}/output_gen/graph/graph_results_report.html"
+        input: 
+            graph_res = "{dir}/output_gen/graph/graph_results.csv",
+            rxn_json = "{dir}/output_met/AMON_output/rn_dict.json"
+        output: 
+            output = "{dir}/output_gen/graph/graph_results_report.html"
         conda: "DMnet_env.yaml"
         shell: 
             """
             python src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
+                --rxn_json {input.rxn_json} \
                 --output {output.output}
             """
