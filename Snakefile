@@ -55,8 +55,10 @@ if METABOLOME:
             "{dir}/output_met/graph/graph_results_report.html"
 
     rule CreateFoodMetadata_met:
-        input: f_file = "{dir}/foodb_foods_dataframe.csv"
-        output: f_meta = "{dir}/output_met/food_meta.csv"
+        input: 
+            f_file = "{dir}/foodb_foods_dataframe.csv"
+        output: 
+            f_meta = "{dir}/output_met/food_meta.csv"
         conda: "DMnet_env.yaml"
         shell:
             """
@@ -71,7 +73,8 @@ if METABOLOME:
         input: 
             f_meta = "{dir}/output_met/food_meta.csv",
             graphs = "{dir}/output_met/graph/M_nodes_df.csv" 
-        output: report = "{dir}/output_met/food_compound_report.html"
+        output: 
+            report = "{dir}/output_met/food_compound_report.html"
         conda: "DMnet_env.yaml"
         shell:
             """
@@ -99,7 +102,8 @@ if METABOLOME:
         input: 
             prep="{dir}/output_met/AMON_output/.prepared",
             kos = "{dir}/noquote_ko.txt"
-        output: rn_json = "{dir}/output_met/AMON_output/rn_dict.json"
+        output: 
+            rn_json = "{dir}/output_met/AMON_output/rn_dict.json"
         conda: "DMnet_env.yaml"
         shell:
             """
@@ -215,8 +219,10 @@ if GENOME:
             "{dir}/output_gen/graph/graph_results_report.html"
 
     rule CreateFoodMetadata_gen:
-        input: kegg_orgs = "{dir}/kegg_organisms_dataframe.csv"
-        params: kos_dir = "{dir}/output_gen/org_KO/"
+        input: 
+            kegg_orgs = "{dir}/kegg_organisms_dataframe.csv"
+        params: 
+            kos_dir = "{dir}/output_gen/org_KO/"
         output: 
             food_meta = "{dir}/output_gen/food_item_kos.csv",
             joined = "{dir}/output_gen/org_KO/joined.txt"
@@ -297,8 +303,10 @@ if GENOME:
 
     
     rule CreateCompoundReport_gen:
-        input: node_file = "{dir}/output_gen/graph/WG_nodes_df.csv"
-        output: o = "{dir}/output_gen/food_compound_report.html"
+        input: 
+            node_file = "{dir}/output_gen/graph/WG_nodes_df.csv"
+        output: 
+            o = "{dir}/output_gen/food_compound_report.html"
         shell: 
             """
             python src/WholeGenome_proc/RenderCompoundAnalysis.py \

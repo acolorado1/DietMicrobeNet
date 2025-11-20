@@ -11,12 +11,12 @@ dependencies:
   - coin-or-cbc
   - snakemake
   - tqdm
-  - neo4j
 
   # R core
   - r-base>=4.4.2
 
   # R tidyverse + core packages (ARM-compatible)
+  - r-argparse
   - r-BiocManager
   - r-cairo
   - r-cowplot
@@ -51,3 +51,4 @@ dependencies:
   - pip:
     - AMON-bio
     - lxml
+    - neo4j
