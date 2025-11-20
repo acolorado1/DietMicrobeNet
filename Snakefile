@@ -355,7 +355,7 @@ if GENOME:
     rule PatternReport_gen: 
         input: 
             graph_res = "{dir}/output_gen/graph/graph_results.csv",
-            rxn_json = "{dir}/output_met/AMON_output/rn_dict.json"
+            rxn_json = "{dir}/output_gen/AMON_output/rn_dict.json"
         output: 
             output = "{dir}/output_gen/graph/graph_results_report.html"
         conda: "DMnet_env.yaml"
