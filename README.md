@@ -4,12 +4,12 @@ The purpose of this code will be to create a metabolic network where nodes repre
 
 ## General Workflow 
 
-Every user will need to set up and install this program the same way. To do this go to [1. Getting Started](https://github.com/acolorado1/DietMicrobeNet/wiki/1.-Getting-Started) in the repo's [Wiki]((https://github.com/acolorado1/DietMicrobeNet/wiki)). 
+Every user will need to set up and install this program the same way. To do this go to [1. Getting Started](https://github.com/acolorado1/DietMicrobeNet/wiki/1.-Getting-Started) in the repo's [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki). 
 
 After getting set up, you will have decide if you want to run each step manually or use the provided Snakemake Workflow. 
 
-* For manual approach follow steps 2-5 in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
-* For Snakemake Workflow follow [step 2](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items), then run [Snakemake](https://github.com/acolorado1/DietMicrobeNet/wiki/Snakemake-Workflow-(Steps-3%E2%80%904)), then run [step 5](https://github.com/acolorado1/DietMicrobeNet/wiki/5.-Inter%E2%80%90Sample-Comparison) all found in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
+* For **manual approach** follow steps 2-5 in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
+* For **Snakemake Workflow** follow [step 2](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items), then run [Snakemake](https://github.com/acolorado1/DietMicrobeNet/wiki/Snakemake-Workflow-(Steps-3%E2%80%904)), then run [step 5](https://github.com/acolorado1/DietMicrobeNet/wiki/5.-Inter%E2%80%90Sample-Comparison) all found in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
 
 ## Contact
 
