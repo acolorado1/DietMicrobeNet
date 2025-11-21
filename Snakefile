@@ -31,7 +31,14 @@ print(f"  Neo4j password: {PASSWORD}")
 # -----------------------------------
 rule all:
     input:
+        # Metabolome requirements 
+        (expand("{dir}/output_met/food_compound_report.html", dir=DIRECTORIES) if METABOLOME else []),
+        (expand("{dir}/output_met/microbe_compound_report.html", dir=DIRECTORIES) if METABOLOME and INCLUDE_ORGS and N_WEIGHTS else []),
         (expand("{dir}/output_met/graph/graph_results_report.html", dir=DIRECTORIES) if METABOLOME else []),
+
+        # Genome requirements
+        (expand("{dir}/output_gen/food_compound_report.html", dir=DIRECTORIES) if GENOME else []),
+        (expand("{dir}/output_gen/microbe_compound_report.html", dir=DIRECTORIES) if GENOME and INCLUDE_ORGS and N_WEIGHTS else []),
         (expand("{dir}/output_gen/graph/graph_results_report.html", dir=DIRECTORIES) if GENOME else [])
 
 
@@ -78,7 +85,7 @@ if METABOLOME:
         conda: "DMnet_env.yaml"
         shell:
             """
-            python src/Metabolome_proc/RenderCompoundAnalysis.py \
+            python {workflow.basedir}src/Metabolome_proc/RenderCompoundAnalysis.py \
                 --food_file {input.f_meta} \
                 --output {output.report}
             """
@@ -154,7 +161,7 @@ if METABOLOME:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python src/RenderCompoundAnalysis_Microbe.py \
+                python {workflow.basedir}src/RenderCompoundAnalysis_Microbe.py \
                     --node_file {input.nodes} \
                     --edge_file {input.edges} \
                     --output {output.report}
@@ -191,7 +198,7 @@ if METABOLOME:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python src/RenderGraphResults_Report.py \
+            python {workflow.basedir}src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
                 --rxn_json {input.rxn_json} \
                 --output {output.output}
@@ -309,7 +316,7 @@ if GENOME:
             o = "{dir}/output_gen/food_compound_report.html"
         shell: 
             """
-            python src/WholeGenome_proc/RenderCompoundAnalysis.py \
+            python {workflow.basedir}src/WholeGenome_proc/RenderCompoundAnalysis.py \
                 --node_file {input.node_file} \
                 --output {output.o}
             """
@@ -324,7 +331,7 @@ if GENOME:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python src/RenderCompoundAnalysis_Microbe.py \
+                python {workflow.basedir}src/RenderCompoundAnalysis_Microbe.py \
                     --node_file {input.nodes} \
                     --edge_file {input.edges} \
                     --output {output.report}
@@ -361,7 +368,7 @@ if GENOME:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python src/RenderGraphResults_Report.py \
+            python {workflow.basedir}src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
                 --rxn_json {input.rxn_json} \
                 --output {output.output}
