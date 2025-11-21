@@ -9,29 +9,53 @@ GENOME        = config.get("genome", False)
 E_WEIGHTS     = config.get("e_weights", False)
 N_WEIGHTS     = config.get("n_weights", False)
 INCLUDE_ORGS  = config.get("include_orgs", False)
-ABUNDANCE_COL = config.get("abundance_col", " ")
+ABUNDANCE_COL = config.get("abundance_col", " ") 
+ALL_FOOD      = config.get("all_food", False)
 URI = config.get("uri", " ")
 USER = config.get("user", " ")
 PASSWORD = config.get("p", " ")
 
 print("Running with config:")
-print(f"  Directories:   {DIRECTORIES}")
-print(f"  Metabolome:    {METABOLOME}")
-print(f"  Genome:        {GENOME}")
-print(f"  E Weights:     {E_WEIGHTS}")
-print(f"  N Weights:     {N_WEIGHTS}")
-print(f"  Include Orgs:  {INCLUDE_ORGS}")
-print(f"  Abundance Col: {ABUNDANCE_COL}")
-print(f"  Neo4j URI: {URI}")
+print(f"  Directories:    {DIRECTORIES}")
+print(f"  Metabolome:     {METABOLOME}")
+print(f"  Genome:         {GENOME}")
+print(f"  E Weights:      {E_WEIGHTS}")
+print(f"  N Weights:      {N_WEIGHTS}")
+print(f"  Include Orgs:   {INCLUDE_ORGS}")
+print(f"  Abundance Col:  {ABUNDANCE_COL}")
+print(f"  All Food:       {ALL_FOOD}")
+print(f"  Neo4j URI:      {URI}")
 print(f"  Neo4j username: {USER}")
 print(f"  Neo4j password: {PASSWORD}")
+
+# -------------------------------------------------------------
+# Select correct food_meta file depending on ALL_FOOD
+# -------------------------------------------------------------
+def select_meta_file(wildcards):
+    """
+    If ALL_FOOD == True, use precomputed metadata from Data/AllFood.
+    Otherwise use standard output_met/food_meta.csv and require the
+    CreateFoodMetadata_met rule to generate it.
+    """
+    if ALL_FOOD:
+        return f"{wildcards.dir}/Data/AllFood/food_meta.csv"
+    else:
+        return f"{wildcards.dir}/output_met/food_meta.csv"
+
 
 # -----------------------------------
 # Rule all – gather outputs across dirs
 # -----------------------------------
 rule all:
     input:
+        # Metabolome requirements 
+        (expand("{dir}/output_met/food_compound_report.html", dir=DIRECTORIES) if METABOLOME else []),
+        (expand("{dir}/output_met/microbe_compound_report.html", dir=DIRECTORIES) if METABOLOME and INCLUDE_ORGS and N_WEIGHTS else []),
         (expand("{dir}/output_met/graph/graph_results_report.html", dir=DIRECTORIES) if METABOLOME else []),
+
+        # Genome requirements
+        (expand("{dir}/output_gen/food_compound_report.html", dir=DIRECTORIES) if GENOME else []),
+        (expand("{dir}/output_gen/microbe_compound_report.html", dir=DIRECTORIES) if GENOME and INCLUDE_ORGS and N_WEIGHTS else []),
         (expand("{dir}/output_gen/graph/graph_results_report.html", dir=DIRECTORIES) if GENOME else [])
 
 
@@ -42,7 +66,6 @@ if METABOLOME:
 
     rule all_met:
         input: 
-            "{dir}/output_met/food_meta.csv",
             "{dir}/output_met/food_compound_report.html",
             "{dir}/output_met/AMON_output/rn_dict.json",
             "{dir}/output_met/graph/M_nodes_df.csv",
@@ -71,14 +94,14 @@ if METABOLOME:
 
     rule CreateCompoundReport_met:
         input: 
-            f_meta = "{dir}/output_met/food_meta.csv",
+            f_meta = select_meta_file,
             graphs = "{dir}/output_met/graph/M_nodes_df.csv" 
         output: 
             report = "{dir}/output_met/food_compound_report.html"
         conda: "DMnet_env.yaml"
         shell:
             """
-            python src/Metabolome_proc/RenderCompoundAnalysis.py \
+            python {workflow.basedir}src/Metabolome_proc/RenderCompoundAnalysis.py \
                 --food_file {input.f_meta} \
                 --output {output.report}
             """
@@ -116,7 +139,7 @@ if METABOLOME:
 
     rule GraphCreation_met:
         input: 
-            f_meta = "{dir}/output_met/food_meta.csv",
+            f_meta = select_meta_file,
             rn_json = "{dir}/output_met/AMON_output/rn_dict.json",
             m_meta = "{dir}/ko_taxonomy_abundance.csv"
         params:
@@ -154,7 +177,7 @@ if METABOLOME:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python src/RenderCompoundAnalysis_Microbe.py \
+                python {workflow.basedir}src/RenderCompoundAnalysis_Microbe.py \
                     --node_file {input.nodes} \
                     --edge_file {input.edges} \
                     --output {output.report}
@@ -191,7 +214,7 @@ if METABOLOME:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python src/RenderGraphResults_Report.py \
+            python {workflow.basedir}src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
                 --rxn_json {input.rxn_json} \
                 --output {output.output}
@@ -309,7 +332,7 @@ if GENOME:
             o = "{dir}/output_gen/food_compound_report.html"
         shell: 
             """
-            python src/WholeGenome_proc/RenderCompoundAnalysis.py \
+            python {workflow.basedir}src/WholeGenome_proc/RenderCompoundAnalysis.py \
                 --node_file {input.node_file} \
                 --output {output.o}
             """
@@ -324,7 +347,7 @@ if GENOME:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python src/RenderCompoundAnalysis_Microbe.py \
+                python {workflow.basedir}src/RenderCompoundAnalysis_Microbe.py \
                     --node_file {input.nodes} \
                     --edge_file {input.edges} \
                     --output {output.report}
@@ -361,7 +384,7 @@ if GENOME:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python src/RenderGraphResults_Report.py \
+            python {workflow.basedir}src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
                 --rxn_json {input.rxn_json} \
                 --output {output.output}

@@ -11,10 +11,11 @@ def main():
     parser.add_argument("--directories", nargs="+", required=True, help="List of input directories")
     parser.add_argument("--metabolome", action="store_true", help="Enable metabolome analysis")
     parser.add_argument("--genome", action="store_true", help="Enable genome analysis")
-    parser.add_argument("--e-weights", action="store_true", help="Enable E weights")
-    parser.add_argument("--n-weights", action="store_true", help="Enable N weights")
+    parser.add_argument("--e-weights", action="store_true", help="Enable edge weights: read abundance")
+    parser.add_argument("--n-weights", action="store_true", help="Enable node weights: food frequency")
     parser.add_argument("--include-orgs", action="store_true", help="Include organisms")
     parser.add_argument("--abundance-col", type=str, default="Abundance_RPKs", help="Column name for abundance")
+    parser.add_argument("--all-food", action="store_false", help="Enable use of all foods from foodb")
     parser.add_argument('--uri', type=str, required=True, help='Neo4j URI instance')
     parser.add_argument('--user', type=str, required=True, help='Neo4j username for instance')
     parser.add_argument('--p', type=str, required=True, help='Neo4j password for instance')
@@ -38,6 +39,7 @@ def main():
         "n_weights": args.n_weights,
         "include_orgs": args.include_orgs,
         "abundance_col": args.abundance_col,
+        "all_food": args.all_food,
         "uri": args.uri,
         "user": args.user,
         "p": args.p,
