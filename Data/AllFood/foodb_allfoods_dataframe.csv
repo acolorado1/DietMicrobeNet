@@ -1,0 +1,993 @@
+id,name,name_scientific,food_frequency
+1,Angelica,Angelica keiskei,1
+2,Savoy cabbage,Brassica oleracea var. sabauda,1
+3,Silver linden,Tilia argentea,1
+4,Kiwi,Actinidia chinensis,1
+5,Allium,Allium,1
+6,Garden onion,Allium cepa,1
+7,Leek,Allium porrum,1
+8,Garlic,Allium sativum,1
+9,Chives,Allium schoenoprasum,1
+10,Lemon verbena,Aloysia triphylla,1
+11,Cashew nut,Anacardium occidentale,1
+12,Pineapple,Ananas comosus,1
+13,Dill,Anethum graveolens,1
+14,Custard apple,Annona reticulata,1
+15,Wild celery,Apium graveolens,1
+16,Peanut,Arachis hypogaea,1
+17,Burdock,Arctium lappa,1
+18,Horseradish,Armoracia rusticana,1
+19,Tarragon,Artemisia dracunculus,1
+20,Mugwort,Artemisia vulgaris,1
+21,Asparagus,Asparagus officinalis,1
+22,Oat,Avena sativa,1
+23,Star fruit,Averrhoa carambola,1
+24,Brazil nut,Bertholletia excelsa,1
+25,Common beet,Beta vulgaris,1
+26,Borage,Borago officinalis,1
+27,Chinese mustard,Brassica juncea,1
+28,Swede,Brassica napus,1
+29,Rape,Brassica napus var. napus,1
+30,Common cabbage,Brassica oleracea,1
+31,Cauliflower,Brassica oleracea var. botrytis,1
+32,Brussel sprouts,Brassica oleracea var. gemmifera,1
+33,Kohlrabi,Brassica oleracea var. gongylodes,1
+34,Broccoli,Brassica oleracea var. italica,1
+35,Chinese cabbage,Brassica rapa,1
+36,Turnip,Brassica rapa var. rapa,1
+37,Pigeon pea,Cajanus cajan,1
+38,Tea,Camellia sinensis,1
+39,Capers,Capparis spinosa,1
+40,Pepper,Capsicum annuum,1
+41,Papaya,Carica papaya,1
+42,Safflower,Carthamus tinctorius,1
+43,Caraway,Carum carvi,1
+44,Pecan nut,Carya illinoinensis,1
+45,Chestnut,Castanea,1
+46,Roman camomile,Chamaemelum nobile,1
+47,Chickpea,Cicer arietinum,1
+48,Endive,Cichorium endivia,1
+49,Chicory,Cichorium intybus,1
+50,Chinese cinnamon,Cinnamomum aromaticum,1
+51,Ceylon cinnamon,Cinnamomum verum,1
+52,Watermelon,Citrullus lanatus,1
+53,Lime,Citrus aurantiifolia,1
+54,Lemon,Citrus limon,1
+55,Pummelo,Citrus maxima,1
+56,"Mandarin orange (Clementine, Tangerine)",Citrus reticulata,1
+57,Sweet orange,Citrus sinensis,1
+58,Coffee,Coffea,1
+59,Arabica coffee,Coffea arabica,1
+60,Robusta coffee,Coffea canephora,1
+61,Coriander,Coriandrum sativum,1
+62,Common hazelnut,Corylus avellana,1
+63,Saffron,Crocus sativus,1
+64,Muskmelon,Cucumis melo,1
+65,Cucumber,Cucumis sativus,1
+66,Cucurbita,Cucurbita,1
+67,Cumin,Cuminum cyminum,1
+68,Turmeric,Curcuma longa,1
+69,Quince,Cydonia oblonga,1
+70,Lemon grass,Cymbopogon citratus,1
+71,Globe artichoke,Cynara scolymus,1
+72,Wild carrot,Daucus carota,1
+73,Japanese persimmon,Diospyros kaki,1
+74,Cardamom,Elettaria cardamomum,1
+75,Black crowberry,Empetrum nigrum,1
+76,Loquat,Eriobotrya japonica,1
+77,Rocket salad (ssp.),Eruca vesicaria ssp. sativa,1
+78,Wax apple,Eugenia javanica,1
+79,Common buckwheat,Fagopyrum esculentum,1
+80,Tartary buckwheat,Fagopyrum tataricum,1
+81,Fig,Ficus carica,1
+82,Fennel,Foeniculum vulgare,1
+83,Strawberry,Fragaria X ananassa,1
+84,Black huckleberry,Gaylussacia baccata,1
+85,Soy bean,Glycine max,1
+86,Sunflower,Helianthus annuus,1
+87,Sea-buckthornberry,Hippophae rhamnoides,1
+88,Barley,Hordeum vulgare,1
+89,Hyssop,Hyssopus officinalis,1
+90,Star anise,Illicium verum,1
+91,Swamp cabbage,Ipomoea aquatica,1
+92,Sweet potato,Ipomoea batatas,1
+93,Black walnut,Juglans nigra,1
+94,Common walnut,Juglans regia,1
+95,Lettuce,Lactuca sativa,1
+96,Grass pea,Lathyrus sativus,1
+97,Sweet bay,Laurus nobilis,1
+98,Lentils,Lens culinaris,1
+99,Garden cress,Lepidium sativum,1
+100,Lovage,Levisticum officinale,1
+101,Flaxseed,Linum usitatissimum,1
+102,Mexican oregano,Lippia graveolens,1
+103,Lichee,Litchi chinensis,1
+104,Lupine,Lupinus,1
+105,Apple,Malus pumila,1
+106,Mango,Mangifera indica,1
+107,German camomile,Matricaria recutita,1
+108,Lemon balm,Melissa officinalis,1
+109,Mentha,Mentha,1
+110,Orange mint,Mentha aquatica,1
+111,Cornmint,Mentha arvensis,1
+112,Spearmint,Mentha spicata,1
+113,Peppermint,Mentha X piperita,1
+114,Medlar,Mespilus germanica,1
+115,Bitter gourd,Momordica charantia,1
+116,Mulberry,Morus,1
+117,Black mulberry,Morus nigra,1
+118,Nutmeg,Myristica fragrans,1
+119,Sweet basil,Ocimum basilicum,1
+120,Evening primrose,Oenothera biennis,1
+121,Olive,Olea europaea,1
+122,Sweet marjoram,Origanum majorana,1
+123,Pot marjoram,Origanum onites,1
+124,Common oregano,Origanum vulgare,1
+125,Rice,Oryza sativa,1
+126,Millet,Panicum miliaceum,1
+127,Poppy,Papaver,1
+128,Passion fruit,Passiflora edulis,1
+129,Parsnip,Pastinaca sativa,1
+130,Avocado,Persea americana,1
+131,Parsley,Petroselinum crispum,1
+132,Scarlet bean,Phaseolus coccineus,1
+133,Lima bean,Phaseolus lunatus,1
+134,Common bean,Phaseolus vulgaris,1
+135,Date,Phoenix dactylifera,1
+136,Black chokeberry,Photinia melanocarpa,1
+137,Anise,Pimpinella anisum,1
+138,Pine nut,Pinus,1
+139,Pepper (Spice),Piper nigrum,1
+140,Pistachio,Pistacia vera,1
+141,Common pea,Pisum sativum,1
+142,Purslane,Portulaca oleracea,1
+143,"Prunus (Cherry, Plum)",Prunus,1
+144,Apricot,Prunus armeniaca,1
+145,Sweet cherry,Prunus avium,1
+146,Sour cherry,Prunus cerasus,1
+147,European plum,Prunus domestica,1
+148,Almond,Prunus dulcis,1
+149,Peach,Prunus persica,1
+150,Guava,Psidium guajava,1
+151,Pomegranate,Punica granatum,1
+152,Pear,Pyrus communis,1
+153,Radish,Raphanus sativus,1
+154,Garden rhubarb,Rheum rhabarbarum,1
+155,Blackcurrant,Ribes nigrum,1
+156,Redcurrant,Ribes rubrum,1
+157,Gooseberry,Ribes uva-crispa,1
+158,Watercress,Rorippa nasturtium-aquaticum,1
+159,Rosemary,Rosmarinus officinalis,1
+160,"Rubus (Blackberry, Raspberry)",Rubus,1
+161,Cloudberry,Rubus chamaemorus,1
+162,Red raspberry,Rubus idaeus,1
+163,Black raspberry,Rubus occidentalis,1
+164,Sorrel,Rumex acetosa,1
+165,Common sage,Salvia officinalis,1
+166,Black elderberry,Sambucus nigra,1
+167,Summer savory,Satureja hortensis,1
+168,Winter savory,Satureja montana,1
+169,Rye,Secale cereale,1
+170,Sesame,Sesamum orientale,1
+171,Garden tomato,Solanum lycopersicum,1
+172,Cherry tomato,Solanum lycopersicum var. cerasiforme,1
+173,Garden tomato (var.),Solanum lycopersicum var. lycopersicum,1
+174,Eggplant,Solanum melongena,1
+175,Potato,Solanum tuberosum,1
+176,Rowanberry,Sorbus aucuparia,1
+177,Sorghum,Sorghum bicolor,1
+178,Spinach,Spinacia oleracea,1
+179,Cloves,Syzygium aromaticum,1
+180,Tamarind,Tamarindus indica,1
+181,Dandelion,Taraxacum officinale,1
+182,Cocoa bean,Theobroma cacao,1
+183,Common thyme,Thymus vulgaris,1
+184,Linden,Tilia,1
+185,Small-leaf linden,Tilia cordata,1
+186,Fenugreek,Trigonella foenum-graecum,1
+187,Common wheat,Triticum aestivum,1
+188,"Vaccinium (Blueberry, Cranberry, Huckleberry)",Vaccinium,1
+189,Lowbush blueberry,Vaccinium angustifolium,1
+190,Sparkleberry,Vaccinium arboreum,1
+191,Highbush blueberry,Vaccinium corymbosum,1
+192,American cranberry,Vaccinium macrocarpon,1
+193,Bilberry,Vaccinium myrtillus,1
+194,Lingonberry,Vaccinium vitis-idaea,1
+195,Vanilla,Vanilla,1
+196,Common verbena,Verbena officinalis,1
+197,Broad bean,Vicia faba,1
+198,Adzuki bean,Vigna angularis,1
+199,Gram bean,Vigna mungo,1
+200,Mung bean,Vigna radiata,1
+201,Climbing bean,Vigna umbellata,1
+202,Cowpea,Vigna unguiculata,1
+203,Muscadine grape,Vitis rotundifolia,1
+204,Common grape,Vitis vinifera,1
+205,Corn,Zea mays,1
+206,Ginger,Zingiber officinale,1
+207,Arctic blackberry,Rubus arcticus,1
+208,Banana,Musa acuminata,1
+209,Bayberry,Myrica,1
+210,Elliott's blueberry,Vaccinium elliottii,1
+211,Canada blueberry,Vaccinium myrtilloides,1
+212,Bog bilberry,Vaccinium uliginosum,1
+213,Buffalo currant,Ribes aureum var. villosum,1
+214,Celeriac,Apium graveolens var. rapaceum,1
+215,Celery stalks,Apium graveolens var. dulce,1
+216,Chinese chives,Allium tuberosum,1
+217,European cranberry,Vaccinium oxycoccos,1
+218,Deerberry,Vaccinium stamineum,1
+219,Ginseng,Panax,1
+220,Cascade huckleberry,Vaccinium deliciosum,1
+221,Oval-leaf huckleberry,Vaccinium ovalifolium,1
+222,Evergreen huckleberry,Vaccinium ovatum,1
+223,Red huckleberry,Vaccinium parvifolium,1
+224,Longan,Dimocarpus longan,1
+225,Macadamia nut (M. tetraphylla),Macadamia tetraphylla,1
+226,Garden onion (var.),Allium cepa var. cepa,1
+227,Summer grape,Vitis aestivalis,1
+228,Fox grape,Vitis labrusca,1
+229,Nectarine,Prunus persica var. nucipersica,1
+230,Peach (var.),Prunus persica var. persica,1
+231,Pepper (C. baccatum),Capsicum baccatum var. baccatum,1
+232,Pepper (C. chinense),Capsicum chinense,1
+233,Pepper (Capsicum),Capsicum,1
+234,Rambutan,Nephelium lappaceum,1
+235,Red rice,Oryza rufipogon,1
+236,Annual wild rice,Zizania aquatica,1
+237,Swiss chard,Beta vulgaris ssp. cicla,1
+238,Lemon thyme,Thymus pulegioides,1
+239,Tronchuda cabbage,Brassica oleracea var. costata,1
+240,Japanese walnut,Juglans ailanthifolia,1
+241,Welsh onion,Allium fistulosum,1
+242,Hard wheat,Triticum durum,1
+243,Shallot,Allium ascalonicum,1
+244,Rocket salad,Eruca vesicaria,1
+245,Carrot,Daucus carota ssp. sativus,1
+246,Triticale,X Triticosecale rimpaui,1
+247,Black cabbage,Brassica oleracea var. viridis,1
+248,Half-highbush blueberry,Vaccinium angustifolium X Vaccinium corymbosum,1
+249,Celery leaves,Apium graveolens var. secalinum,1
+250,Chicory leaves,Cichorium intybus var. foliosum,1
+251,Komatsuna,Brassica rapa var. perviridis,1
+252,Pak choy,Brassica rapa var. chinensis,1
+253,Napa cabbage,Brassica rapa var. pekinensis,1
+254,Chicory roots,Cichorium intybus var. sativum,1
+255,Grapefruit/Pummelo hybrid,Citrus paradisi X Citrus maxima,1
+256,Grapefruit,Citrus X paradisi,1
+257,Jostaberry,Ribes × nidigrolaria,1
+258,Kai-lan,Brassica oleracea var. alboglabra,1
+259,Italian oregano,Origanum X majoricum,1
+260,Oxheart cabbage,Brassica oleracea var. conica,1
+261,Daikon radish,Raphanus sativus var. longipinnatus,1
+262,Black radish,Raphanus sativus var. niger,1
+263,Radish (var.),Raphanus sativus var. sativus,1
+264,Red beetroot,Beta vulgaris var. rubra,1
+265,Sweet rowanberry,Grataegosorbus mitschurinii,1
+266,Pineappple sage,Salvia elegans,1
+267,Skunk currant,Ribes glandulosum,1
+268,Beer,NA,1
+269,Other bread,NA,1
+270,Breakfast cereal,NA,1
+272,Other soy product,NA,1
+273,Other cereal product,NA,1
+274,Pasta,NA,1
+275,Biscuit,NA,1
+276,Sourdough,NA,1
+277,Spirit,NA,1
+278,Fortified wine,NA,1
+279,Other alcoholic beverage,NA,1
+280,Abalone,Haliotis,1
+281,Abiyuch,Crateva religiosa,1
+282,Acerola,Malpighia emarginata,1
+283,Acorn,Quercus,1
+284,Winter squash,Cucurbita maxima,1
+285,Agar,Eucheuma,1
+286,Red king crab,Paralithodes camtschaticus,1
+287,Alfalfa,Medicago sativa,1
+288,Allspice,Pimenta dioica,1
+289,Amaranth,Amaranthus,1
+290,Arrowhead,Sagittaria latifolia,1
+291,Arrowroot,Maranta arundinacea,1
+292,Asian pear,Pyrus pyrifolia,1
+293,Atlantic herring,Clupea harengus harengus,1
+294,Atlantic mackerel,Scomber scombrus,1
+295,Painted comber,Serranus scriba,1
+296,Atlantic pollock,Pollachius pollachius,1
+297,Atlantic wolffish,Anarhichas lupus,1
+298,Bamboo shoots,Phyllostachys edulis,1
+299,Striped bass,Morone saxatilis,1
+301,Beech nut,Fagus,1
+302,Beluga whale,Delphinapterus leucas,1
+303,Bison,Bison bison,1
+305,Alaska blackfish,Dallia pectoralis,1
+306,Blue crab,Callinectes sapidus,1
+307,Blue mussel,Mytilus edulis,1
+308,Northern bluefin tuna,Thunnus thynnus,1
+309,Bluefish,Pomatomus saltatrix,1
+310,Wild boar,Sus scrofa,1
+311,Bowhead whale,Balaena mysticetus,1
+312,Breadfruit,Artocarpus altilis,1
+313,Breadnut tree seed,Brosimum alicastrum,1
+314,Rapini,Brassica ruvo,1
+316,Buffalo,Bubalus bubalis,1
+317,Burbot,Lota lota,1
+318,Giant butterbur,Petasites japonicus,1
+319,American butterfish,Peprilus triacanthus,1
+320,Butternut,Juglans cinerea,1
+321,Butternut squash,Cucurbita moschata,1
+322,Calabash,Lagenaria siceraria,1
+323,Cardoon,Cynara cardunculus,1
+325,Natal plum,Carissa macrocarpa,1
+326,Carob,Ceratonia siliqua,1
+327,Common carp,Cyprinus carpio,1
+328,Cassava,Manihot esculenta,1
+329,Channel catfish,Ictalurus punctatus,1
+330,Chayote,Sechium edule,1
+331,Cherimoya,Annona cherimola,1
+332,Chervil,Anthriscus cerefolium,1
+333,Chia,Salvia hispanica,1
+334,Chicken,Gallus gallus,1
+335,Chinese broccoli,Brassica alboglabra,1
+336,Chinese chestnut,Castanea mollissima,1
+337,Chinese water chestnut,Eleocharis dulcis,1
+338,Garland chrysanthemum,Chrysanthemum coronarium,1
+339,Cisco,Coregonus artedi,1
+340,Nuttall cockle,Clinocardium nuttallii,1
+341,Coconut,Cocos nucifera,1
+342,Pacific cod,Gadus macrocephalus,1
+343,Atlantic cod,Gadus morhua,1
+344,Common octopus,Octopus vulgaris,1
+345,Corn salad,Valerianella locusta,1
+346,Cottonseed,Gossypium,1
+347,Catjang pea,Vigna unguiculata ssp. cylindrica,1
+348,Malus (Crab apple),Malus,1
+349,Squashberry,Viburnum edule,1
+350,Atlantic croaker,Micropogonias undulatus,1
+351,Cusk,Brosme brosme,1
+352,Cuttlefish,Sepiidae,1
+353,Mule deer,Odocoileus,1
+354,Devilfish,Myoxocephalus,1
+355,Dock,Rumex,1
+356,Dolphin fish,Coryphaena hippurus,1
+357,Freshwater drum,Aplodinotus grunniens,1
+358,Mallard duck,Anas platyrhynchos,1
+359,Dungeness crab,Cancer magister,1
+360,Durian,Durio zibethinus,1
+361,Eastern oyster,Crassostrea virginica,1
+362,Freshwater eel,Anguilla,1
+363,Elderberry,Sambucus,1
+364,Elk,Cervus canadensis,1
+365,Emu,Dromaius novaehollandiae,1
+366,Oregon yampah,Perideridia oregana,1
+367,European anchovy,Engraulis encrasicolus,1
+368,European chestnut,Castanea sativa,1
+369,Turbot,Scophthalmus maximus,1
+370,Fireweed,Chamerion angustifolium,1
+371,Florida pompano,Trachinotus carolinus,1
+372,Ginkgo nuts,Ginkgo biloba,1
+373,Greylag goose,Anser anser,1
+374,Grape,Vitis,1
+375,Greenland halibut/turbot,Reinhardtius hippoglossoides,1
+376,Groundcherry,Physalis,1
+377,Grouper,Epinephelus,1
+378,Guinea hen,Numida meleagris,1
+379,Haddock,Melanogrammus aeglefinus,1
+380,Hippoglossus (Common halibut),Hippoglossus,1
+381,Hazelnut,Corylus,1
+382,Hickory nut,Carya,1
+383,Horse,Equus caballus,1
+384,Horseradish tree,Moringa oleifera,1
+385,Alaska blueberry,Vaccinium alaskaense,1
+386,Hyacinth bean,Lablab purpureus,1
+387,Irish moss,Chondrus crispus,1
+388,Pacific jack mackerel,Trachurus symmetricus,1
+389,Jackfruit,Artocarpus heterophyllus,1
+390,Japanese chestnut,Castanea crenata,1
+391,Java plum,Syzygium cumini,1
+392,Jerusalem artichoke,Helianthus tuberosus,1
+393,Jujube,Ziziphus zizyphus,1
+394,Jute,Corchorus olitorius,1
+395,Kale,Brassica napus var. pabularia,1
+396,Kelp,Laminaria,1
+397,King mackerel,Scomberomorus cavalla,1
+398,Kumquat,Fortunella,1
+399,Lambsquarters,Chenopodium album,1
+400,Leather chiton,Katharina tunicata,1
+401,Wild leek,Allium ampeloprasum,1
+402,Common ling,Molva molva,1
+403,Lingcod,Ophiodon elongatus,1
+404,American lobster,Homarus americanus,1
+405,Loganberry,Rubus loganobaccus,1
+406,Lotus,Nelumbo,1
+407,Sacred lotus,Nelumbo nucifera,1
+408,White lupine,Lupinus albus,1
+409,Malabar spinach,Basella alba,1
+410,Mammee apple,Mammea americana,1
+411,Purple mangosteen,Garcinia mangostana,1
+412,Alpine sweetvetch,Hedysarum alpinum,1
+413,Milkfish,Chanos chanos,1
+414,Monkfish,Lophius piscatorius,1
+416,Moth bean,Vigna aconitifolia,1
+417,Mountain yam,Dioscorea pentaphylla,1
+418,Striped mullet,Mugil cephalus,1
+420,White mustard,Sinapis alba,1
+421,Mustard spinach,Brassica perviridis,1
+422,New Zealand spinach,Tetragonia tetragonioides,1
+423,Nopal,Opuntia cochenillifera,1
+424,Ocean pout,Zoarces americanus,1
+425,North Pacific giant octopus,Enteroctopus dofleini,1
+426,Ohelo berry,Vaccinium reticulatum,1
+427,Okra,Abelmoschus esculentus,1
+428,Tunicate,Tunicata,1
+430,Ostrich,Struthio camelus,1
+431,Spotted seal,Phoca largha,1
+432,Pacific herring,Clupea pallasii,1
+433,Pacific oyster,Crassostrea gigas,1
+434,Pacific rockfish,Sebastes,1
+435,Velvet duck,Melanitta fusca,1
+436,Pepper (C. frutescens),Capsicum annuum var. annuum,1
+437,Common persimmon,Diospyros virginiana,1
+438,Pheasant,Phasianus colchicus,1
+439,Northern pike,Esox lucius,1
+440,Pili nut,Canarium ovatum,1
+441,Colorado pinyon,Pinus edulis,1
+442,Pitanga,Eugenia uniflora,1
+443,Plains prickly pear,Opuntia macrorhiza,1
+444,French plantain,Musa X paradisiaca,1
+445,American pokeweed,Phytolacca americana,1
+447,Opium poppy,Papaver somniferum,1
+448,Prairie turnip,Pediomelum esculentum,1
+449,Prickly pear,Opuntia,1
+450,Quinoa,Chenopodium quinoa,1
+451,European rabbit,Oryctolagus,1
+453,Rainbow smelt,Osmerus mordax,1
+454,Rainbow trout,Oncorhynchus mykiss,1
+455,Malabar plum,Syzygium jambos,1
+456,Rose hip,Rosa,1
+457,Roselle,Hibiscus sabdariffa,1
+458,Orange roughy,Hoplostethus atlanticus,1
+459,Sablefish,Anoplopoma fimbria,1
+460,Pink salmon,Oncorhynchus gorbuscha,1
+461,Chum salmon,Oncorhynchus keta,1
+462,Coho salmon,Oncorhynchus kisutch,1
+463,Sockeye salmon,Oncorhynchus nerka,1
+464,Chinook salmon,Oncorhynchus tshawytscha,1
+465,Atlantic salmon,Salmo salar,1
+466,Salmonberry,Rubus spectabilis,1
+467,Common salsify,Tragopogon porrifolius,1
+468,Sapodilla,Manilkara zapota,1
+469,Mamey sapote,Pouteria sapota,1
+470,Spanish mackerel,Scomberomorus maculatus,1
+471,Pacific sardine,Sardinops sagax,1
+472,Scallop,Pectinidae,1
+473,Scup,Stenotomus chrysops,1
+474,Sea cucumber,Parastichopus californicus,1
+475,Steller sea lion,Eumetopias jubatus,1
+476,Bearded seal,Erignathus barbatus,1
+477,Ringed seal,Pusa hispida,1
+478,Sea trout,Salmo trutta forma trutta,1
+479,Sesbania flower,Sesbania bispinosa,1
+480,American shad,Alosa sapidissima,1
+481,Shark,Squaliformes,1
+482,Sheefish,Stenodus leucichthys,1
+483,"Sheep (Mutton, Lamb)",Ovis aries,1
+484,Sheepshead,Archosargus probatocephalus,1
+485,Hedge mustard,Sisymbrium,1
+486,Skipjack tuna,Katsuwonus pelamis,1
+487,Snapper,Lutjanidae,1
+488,Soursop,Annona muricata,1
+489,Spelt,Triticum spelta,1
+490,Spirulina,Spirulina,1
+491,Squab,Columba,1
+493,Strawberry guava,Psidium cattleianum,1
+494,Greater sturgeon,Acipenser,1
+495,White sucker,Catostomus commersonii,1
+496,Sugar apple,Annona squamosa,1
+497,Pumpkinseed sunfish,Lepomis gibbosus,1
+498,Swordfish,Xiphias gladius,1
+499,Taro,Colocasia esculenta,1
+500,Teff,Eragrostis tef,1
+501,Tilefish,Lopholatilus chamaeleonticeps,1
+502,Mexican groundcherry,Physalis philadelphica var. immaculata,1
+503,Towel gourd,Luffa aegyptiaca,1
+504,"Salmonidae (Salmon, Trout)",Salmonidae,1
+505,Turkey,Meleagris gallopavo,1
+506,"Cattle (Beef, Veal)",Bos taurus,1
+507,Walleye,Sander vitreus,1
+508,Alaska pollock,Theragra chalcogramma,1
+509,Wasabi,Wasabia japonica,1
+510,Wax gourd,Benincasa hispida,1
+511,Whelk,Buccinidae,1
+512,Coalfish pollock,Pollachius virens,1
+513,Broad whitefish,Coregonus nasus,1
+514,Whitefish,Coregonus,1
+515,Whiting,Merlangius merlangus,1
+516,Wild rice,Zizania,1
+517,Tea leaf willow,Salix pulchra,1
+518,Winged bean,Psophocarpus tetragonolobus,1
+519,Yam,Dioscorea,1
+520,Jicama,Pachyrhizus erosus,1
+521,Yautia,Xanthosoma sagittifolium,1
+522,Yellowfin tuna,Thunnus albacares,1
+523,Yellowtail amberjack,Seriola lalandi,1
+524,Pollock,Pollachius,1
+525,Albacore tuna,Thunnus alalunga,1
+526,Gadus (Common cod),Gadus,1
+527,Atlantic halibut,Hippoglossus hippoglossus,1
+528,Pacific halibut,Hippoglossus stenolepis,1
+529,Pacific salmon,Oncorhynchus,1
+530,Smelt,Osmeridae,1
+531,"Clupeinae (Herring, Sardine, Sprat)",Clupeinae,1
+532,Spiny lobster,Palinuridae,1
+533,Snow crab,Chionoecetes opilio,1
+534,Black-eyed pea,Vigna unguiculata ssp. unguiculata,1
+535,Deer,Cervidae,1
+536,Macadamia nut,Macadamia,1
+537,Percoidei (Bass and others),Percoidei,1
+538,Perciformes,Perciformes,1
+540,Rabbit,Leporidae,1
+541,Domestic goat,Capra aegagrus hircus,1
+542,Beefalo,Bos taurus X Bison bison,1
+544,"Bivalvia (Clam, Mussel, Oyster)",Bivalvia,1
+545,Squid,Teuthida,1
+546,Shrimp,Caridea,1
+547,Crayfish,Astacidea,1
+548,Flatfish,Pleuronectiformes,1
+549,Domestic pig,Sus scrofa domestica,1
+550,Walrus,Odobenus rosmarus,1
+551,Alaska wild rhubarb,Polygonum alpinum,1
+552,Oriental wheat,Triticum turanicum,1
+553,Yardlong bean,Vigna unguiculata ssp. sesquipedalis,1
+555,Quail,Phasianidae,1
+556,Boysenberry,Rubus ursinus X idaeus,1
+557,Persian lime,Citrus latifolia,1
+558,Feijoa,Feijoa sellowiana,1
+559,Rowal,Pangium edule,1
+560,Jew's ear,Auricularia auricula-judae,1
+561,Common mushroom,Agaricus bisporus,1
+562,Shiitake,Lentinus edodes,1
+563,Purple laver,Porphyra laciniata,1
+564,Wakame,Undaria pinnatifida,1
+565,Enokitake,Flammulina velutipes,1
+566,Epazote,Dysphania ambrosioides,1
+567,Oyster mushroom,Pleurotus ostreatus,1
+568,Cloud ear fungus,Auricularia polytricha,1
+569,Maitake,Grifola frondosa,1
+570,Ostrich fern,Matteuccia struthiopteris,1
+571,Spot croaker,Leiostomus xanthurus,1
+572,Sourdock,Rumex articus,1
+573,Tinda,Citrullus lanatus var. fistulosus,1
+574,Atlantic menhaden,Brevoortia tyrannus,1
+575,Wheat,Triticum,1
+576,Common chokecherry,Prunus virginiana,1
+577,Agave,Agave,1
+578,Narrowleaf cattail,Typha angustifolia,1
+579,Jellyfish,Scyphozoa,1
+580,Anchovy,Engraulidae,1
+581,Blue whiting,Micromesistius poutassou,1
+582,Carp bream,Abramis brama,1
+583,Chanterelle,Cantharellus cibarius,1
+584,Sturgeon,Acipenseridae,1
+585,Charr,Salvelinus,1
+586,Cinnamon,Cinnamomum,1
+587,Crab,Brachyura,1
+588,Common dab,Limanda limanda,1
+589,Spiny dogfish,Squalus acanthias,1
+590,Anatidae,Anatidae,1
+591,Anguilliformes,Anguilliformes,1
+592,True frog,Ranidae,1
+593,Garfish,Belone belone,1
+594,Gadiformes,Gadiformes,1
+595,Mountain hare,Lepus timidus,1
+596,Lake trout,Salvelinus namaycush,1
+597,Lemon sole,Microstomus kitt,1
+598,Clawed lobster,Nephropidae,1
+599,Lumpsucker,Cyclopteridae,1
+600,"Scombridae (Bonito, Mackerel, Tuna)",Scombridae,1
+601,Marine mussel,Mytilidae,1
+602,Norway haddock,Sebastes viviparus,1
+603,Norway lobster,Nephrops norvegicus,1
+604,Norway pout,Trisopterus esmarkii,1
+605,Oil palm,Elaeis,1
+606,True oyster,Ostreidae,1
+607,Sago palm,Metroxylon sagu,1
+608,Persimmon,Diospyros,1
+609,Pikeperch,Sander lucioperca,1
+610,"Pleuronectidae (Dab, Halibut, Plaice)",Pleuronectidae,1
+611,Rock ptarmigan,Lagopus muta,1
+612,Pacific ocean perch,Sebastes alutus,1
+613,Black salsify,Scorzonera hispanica,1
+614,True seal,Phocidae,1
+615,Red algae,Rhodophyta,1
+616,Kombu,Saccharina japonica,1
+617,Snail,Gastropoda,1
+618,True sole,Soleidae,1
+619,Catfish,Siluriformes,1
+620,Thistle,Cirsium,1
+621,Thunnus,Thunnus,1
+622,Walnut,Juglans,1
+623,"Cetacea (Dolphin, Porpoise, Whale)",Cetacea,1
+624,"Columbidae (Dove, Pigeon)",Columbidae,1
+625,Conch,Strombidae,1
+626,Grape wine,NA,1
+627,Berry wine,NA,1
+628,Other wine,NA,1
+629,Apple cider,NA,1
+630,Liquor,NA,1
+631,Cheese,NA,1
+632,Milk (Cow),NA,1
+633,Eggs,NA,1
+634,Yogurt,NA,1
+638,Bean,NA,1
+639,Vodka,NA,1
+640,Whisky,NA,1
+641,Ice cream,NA,1
+642,Gin,NA,1
+643,Honey,NA,1
+644,Liquorice,NA,1
+645,Vinegar,NA,1
+646,Rum,NA,1
+647,Port wine,NA,1
+648,Vermouth,NA,1
+649,Sherry,NA,1
+650,Madeira wine,NA,1
+651,Nougat,NA,1
+653,Toffee,NA,1
+654,Cake,NA,1
+655,Pizza,NA,1
+656,Ymer,NA,1
+657,Other snack food,NA,1
+659,Crisp bread,NA,1
+660,Pastry,NA,1
+661,Dragée,NA,1
+662,Chewing gum,NA,1
+663,Marzipan,NA,1
+664,Salad dressing,NA,1
+665,Sauce,NA,1
+666,Salt,NA,1
+667,Butter,NA,1
+668,Butter substitute,NA,1
+669,Cream,NA,1
+670,Sugar,NA,1
+671,Sausage,NA,1
+672,Meatball,NA,1
+673,Mustard,NA,1
+674,Pate,NA,1
+676,Sugar substitute,NA,1
+677,Meat bouillon,NA,1
+679,Whey,NA,1
+680,Casein,NA,1
+681,Fruit preserve,NA,1
+682,Leavening agent,NA,1
+683,Marshmallow,NA,1
+684,Gelatin,NA,1
+685,Water,NA,1
+686,Other fish product,NA,1
+687,Milk (Human),NA,1
+689,Other beverage,NA,1
+690,Baby food,NA,1
+691,Dumpling,NA,1
+692,Soup,NA,1
+693,Other vegetable product,NA,1
+694,Unclassified food or beverage,NA,1
+695,Syrup,NA,1
+696,Tallow,NA,1
+697,Remoulade,NA,1
+698,Chocolate spread,NA,1
+699,Fruit gum,NA,1
+700,Curry powder,NA,1
+701,Other candy,NA,1
+702,Meringue,NA,1
+703,Lard,NA,1
+704,Other animal fat,NA,1
+705,Other cocoa product,NA,1
+706,Cocoa butter,NA,1
+707,Cocoa powder,NA,1
+708,Cocoa liquor,NA,1
+709,Chocolate,NA,1
+710,Hot chocolate,NA,1
+711,Dried milk,NA,1
+712,Milk (Other mammals),NA,1
+713,Kefir,NA,1
+714,Buttermilk,NA,1
+715,Other fermented milk,NA,1
+716,Soy sauce,NA,1
+717,Miso,NA,1
+718,Tofu,NA,1
+721,Zwieback,NA,1
+722,Roe,NA,1
+723,Cichlidae (Tilapia),Cichlidae,1
+724,Icing,NA,1
+725,Snack bar,NA,1
+726,Green turtle,Chelonia mydas,1
+727,Energy drink,NA,1
+728,Burrito,NA,1
+729,Hamburger,NA,1
+730,Baked beans,NA,1
+731,Chili,NA,1
+732,Taco,NA,1
+733,Tortilla,NA,1
+734,Nachos,NA,1
+735,Processed cheese,NA,1
+736,Salad,NA,1
+737,Cream substitute,NA,1
+738,Dulce de leche,NA,1
+739,Topping,NA,1
+740,Sweet custard,NA,1
+742,Egg roll,NA,1
+743,Heart of palm,NA,1
+744,Popcorn,NA,1
+745,Potato chip,NA,1
+746,Tortilla chip,NA,1
+747,Corn chip,NA,1
+748,Hibiscus tea,Hibiscus sabbariffa,1
+749,Stew,NA,1
+750,Gelatin dessert,NA,1
+751,Junket,NA,1
+752,Falafel,NA,1
+753,Frybread,NA,1
+754,Other frozen dessert,NA,1
+755,Lasagna,NA,1
+756,Morchella (Morel),Morchellaceae,1
+757,Pancake,NA,1
+758,Pectin,NA,1
+759,Pudding,NA,1
+760,Waffle,NA,1
+761,Soy milk,NA,1
+762,Meatloaf,NA,1
+763,Sake,NA,1
+764,Cocktail,NA,1
+765,Couscous,NA,1
+766,Bulgur,NA,1
+767,Coffee substitute,NA,1
+768,Coffee mocha,NA,1
+769,Chimichanga,NA,1
+770,Semolina,NA,1
+771,Tapioca pearl,NA,1
+772,Tostada,NA,1
+773,Quesadilla,NA,1
+774,Baked potato,NA,1
+775,Hot dog,NA,1
+776,Spread,NA,1
+777,Enchilada,NA,1
+778,Egg substitute,NA,1
+779,Nutritional drink,NA,1
+780,Other sandwich,NA,1
+781,Ketchup,NA,1
+782,Breakfast sandwich,NA,1
+783,Adobo,NA,1
+784,Macaroni and cheese,NA,1
+785,Butterfat,NA,1
+786,Horned melon,Cucumis metuliferus,1
+787,Hushpuppy,NA,1
+788,Fruit juice,NA,1
+789,Relish,NA,1
+790,Other fruit product,NA,1
+791,Fruit salad,NA,1
+792,Soy yogurt,NA,1
+793,Vegetarian food,NA,1
+794,Veggie burger,NA,1
+795,Cold cut,NA,1
+796,Mixed nuts,NA,1
+797,Canola,NA,1
+798,Babassu palm,Attalea speciosa,1
+799,Cupuaçu,Theobroma grandiflorum,1
+800,Shea tree,Vitellaria paradoxa,1
+801,Oil-seed Camellia,Camellia oleifera,1
+802,Ucuhuba,Virola surinamensis,1
+803,Phyllo dough,NA,1
+804,Cooking oil,NA,1
+805,Pie crust,NA,1
+806,Pie filling,NA,1
+807,Pie,NA,1
+808,Shortening,NA,1
+809,Soy cream,NA,1
+810,Ice cream cone,NA,1
+811,Molasses,NA,1
+812,Cracker,NA,1
+813,Nance,Byrsonima crassifolia,1
+814,Naranjilla,Solanum quitoense,1
+815,Natto,NA,1
+816,Ravioli,NA,1
+817,Scrapple,NA,1
+818,Other pasta dish,NA,1
+819,Succotash,NA,1
+820,Tamale,NA,1
+822,Rice cake,NA,1
+823,Tree fern,Cyathea,1
+824,Evaporated milk,NA,1
+825,Flour,NA,1
+826,Akutaq,NA,1
+828,Dough,NA,1
+829,Pita bread,NA,1
+830,Focaccia,NA,1
+831,Bagel,NA,1
+832,Other bread product,NA,1
+834,Piki bread,NA,1
+835,French toast,NA,1
+836,Wheat bread,NA,1
+837,Rye bread,NA,1
+838,Oat bread,NA,1
+839,Potato bread,NA,1
+840,Cornbread,NA,1
+841,Corn grits,NA,1
+842,Multigrain bread,NA,1
+843,Rice bread,NA,1
+844,Pan dulce,NA,1
+845,Raisin bread,NA,1
+846,Wonton wrapper,NA,1
+848,Trail mix,NA,1
+849,Greenthread tea,Thelesperma,1
+850,Fruit-flavor drink,NA,1
+851,Vegetable juice,NA,1
+852,Horchata,NA,1
+853,Soft drink,NA,1
+854,Frozen yogurt,NA,1
+855,Milkshake,NA,1
+856,Chocolate mousse,NA,1
+857,Dripping,NA,1
+858,Pupusa,NA,1
+859,Empanada,NA,1
+860,Arepa,NA,1
+861,Ascidians,Ascidiacea,1
+862,Gefilte fish,NA,1
+863,Yellow pond-lily,Nuphar lutea,1
+864,Fish burger,NA,1
+865,Other dish,NA,1
+866,Pot pie,NA,1
+867,Stuffing,NA,1
+868,Edible shell,NA,1
+869,Fudge,NA,1
+870,Candy bar,NA,1
+871,Condensed milk,NA,1
+872,Margarine,NA,1
+873,Margarine-like spread,NA,1
+874,Hummus,NA,1
+876,Potato puffs,NA,1
+877,Potato gratin,NA,1
+878,Milk substitute,NA,1
+879,Pepper (C. pubescens),Capsicum pubescens,1
+880,Soft-necked garlic,Allium sativum L. var. sativum,1
+881,Cabbage,Brassica oleracea var. capitata,1
+882,Chinese bayberry,Myrica rubra,1
+883,Mushrooms,NA,1
+884,Alcoholic beverages,NA,1
+885,Onion-family vegetables,NA,1
+886,Pomes,NA,1
+887,Brassicas,NA,1
+888,Cereals and cereal products,NA,1
+889,Citrus,NA,1
+890,Cocoa and cocoa products,NA,1
+891,Coffee and coffee products,NA,1
+892,Crustaceans,NA,1
+893,Milk and milk products,NA,1
+894,Fats and oils,NA,1
+896,Fishes,NA,1
+897,Herbs and Spices,NA,1
+898,Pulses,NA,1
+900,Mollusks,NA,1
+901,Nuts,NA,1
+902,Beverages,NA,1
+903,Fruits,NA,1
+904,Green vegetables,NA,1
+905,Root vegetables,NA,1
+906,Sunburst squash (pattypan squash),Cucurbita pepo var. clypeata,1
+907,Green zucchini,Cucurbita pepo var. cylindrica,1
+908,Yellow zucchini,Cucurbita pepo var. cylindrica,1
+909,Green bell pepper,Capsicum annuum,1
+910,Yellow bell pepper,Capsicum annuum,1
+911,Orange bell pepper,Capsicum annuum,1
+912,Red bell pepper,Capsicum annuum,1
+913,Italian sweet red pepper,Capsicum annuum,1
+914,Yellow wax bean,Phaseolus vulgaris,1
+915,Green bean,Phaseolus vulgaris,1
+916,Saskatoon berry,Amelanchier alnifolia,1
+917,Nanking cherry,Prunus tomentosa,1
+918,Japanese pumpkin,Cucurbita maxima,1
+919,White cabbage,Brassica oleracea L. var. capitata L. f. alba DC.,1
+920,Romaine lettuce,Lactuca sativa L. var. longifolia,1
+921,"Cow milk, pasteurized, vitamin A + D added, 0% fat",NA,1
+922,"Cow milk, pasteurized, vitamin A + D added, 1% fat",NA,1
+923,"Cow milk, pasteurized, vitamin A + D added, 2% fat",NA,1
+924,"Cow milk, pasteurized, vitamin D added, 3.25% fat",NA,1
+925,Castanospermum australe,Castanospermum australe,1
+926,Gentiana lutea,Gentiana lutea,1
+927,Juniperus communis,Juniperus communis,1
+928,Albizia gummifera,Albizia gummifera,1
+929,Mundu,Garcinia dulcis,1
+930,Rabbiteye blueberry,Vaccinium virgatum,1
+931,Yali pear,Pyrus × bretschneideri,1
+932,Asparagus racemosus,Asparagus racemosus,1
+933,Evergreen blackberry,Rubus laciniatus,1
+934,Asparagus fern,Asparagus setaceus,1
+935,Thornless blackberry,Rubus ulmifolius,1
+936,Tropical highland blackberry,Rubus adenotrichos,1
+937,Andean blackberry,Rubus glaucus,1
+938,Blackberry,Rubus,1
+939,Black tea,NA,1
+940,Green tea,NA,1
+941,Olive oil,NA,1
+942,Macroalgae,NA,1
+943,Red wine,NA,1
+944,linseed oil,NA,1
+945,Rapeseed oil,NA,1
+946,Soybean oil,NA,1
+947,Guarana,Paullinia cupana,1
+948,Mate,Ilex paraguariensis,1
+949,White wine,NA,1
+950,Sour orange,Citrus × aurantium,1
+951,Egg yolk,NA,1
+952,Rosé wine,NA,1
+953,White mulberry,Morus alba,1
+954,Canola oil,NA,1
+955,Dessert wine,NA,1
+956,Red champagne,NA,1
+957,Red tea,NA,1
+958,White champagne,NA,1
+959,Red grape juice,NA,1
+960,White grape juice,NA,1
+961,Crosne,Stachys affinis,1
+962,Red clover,Trifolium pratense,1
+963,Partridge berry,Mitchella repens,1
+964,Mikan,Citrus unshiu,1
+965,Mozzarella cheese,NA,1
+966,Plain cream cheese,NA,1
+967,Cheddar Cheese,Cheddar Cheese,1
+968,Parmesan cheese,NA,1
+969,Almond milk,NA,1
+970,Coconut milk,NA,1
+971,Salted butter,NA,1
+972,Sunflower oil,NA,1
+973,Coconut oil,NA,1
+974,Peanut oil,NA,1
+975,Cottonseed oil,NA,1
+976,Corn oil,NA,1
+977,Avocado oil,NA,1
+978,Grapeseed oil,NA,1
+979,Sesame oil,NA,1
+980,Monterey Jack cheese,NA,1
+981,Swiss cheese,NA,1
+982,Cottage cheese,NA,1
+983,Blue cheese,NA,1
+984,Clam,NA,1
+985,Sour cream,NA,1
+986,Whole wheat bread,NA,1
+987,Jalapeno pepper,Capsicum annuum 'Jalapeño',1
+988,Greek feta cheese,NA,1
+989,Eddoe,Colocasia antiquorum,1
+990,Plantain,Musa × paradisiaca,1
+991,Clementine,Citrus × clementina,1
+992,Green apple,NA,1
+993,White onion,NA,1
+994,Red onion,NA,1
+995,Green onion,NA,1
+996,Green grape,NA,1
+997,Red grape,NA,1
+998,Black plum,Syzygium cumini,1
+999,Green cabbage,Brassica oleracea var. sabauda L.,1
+1000,Black raisin,NA,1
+1001,Cannellini bean,NA,1
+1002,Green lentil,Lens culinaris,1
+1003,Cubanelle pepper,NA,1
+1004,Acorn squash,Cucurbita pepo var. turbinata,1
+1005,Iceberg lettuce,NA,1
+1006,Japanese sea bass,Lateolabrax japonicus,1
+1007,Pea shoots,NA,1
+1008,Yau choy,NA,1
+1009,Water spinach,Ipomoea aquatica,1
+1010,Chineese plum,NA,1
+1011,Green plum,NA,1
+1012,Wampee,Clausena lansium,1
+1013,Pitaya,Hylocereus undatus,1
+1014,Goji,NA,1
+1015,Monk fruit,Siraitia grosvenorii,1
+1016,Cantaloupe melon,Cucumis melo var. cantalupensis,1
+1017,Hawthorn,Crataegus,1
+1018,Lantern fruit,Physalis alkekengi,1
+1019,White bread,NA,1
+1020,Cape gooseberry,Physalis peruviana,1
+1021,Herbal tea,NA,1
+1022,Fish oil,NA,1
+1023,Taco shell,NA,1
+1024,Tostada shell,NA,1
