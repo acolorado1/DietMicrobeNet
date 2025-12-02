@@ -1,0 +1,5 @@
+file_paths,sample_labels,group_labels
+/Users/burkhang/Desktop/Zim_snakes/F_Exp/ZIM091_A/output_gen/graph/graph_results.csv,ZIM091 A Gen,A
+/Users/burkhang/Desktop/Zim_snakes/F_Exp/ZIM091_A/output_met/graph/graph_results.csv,ZIM091 A Met,A
+/Users/burkhang/Desktop/Zim_snakes/F_Exp/ZIM094_W/output_gen/graph/graph_results.csv,ZIM094 W Gen,W
+/Users/burkhang/Desktop/Zim_snakes/F_Exp/ZIM094_W/output_met/graph/graph_results.csv,ZIM094 W Met,W

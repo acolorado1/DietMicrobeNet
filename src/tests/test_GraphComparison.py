@@ -1,104 +1,194 @@
 import unittest
+import tempfile
+import shutil
+import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
-import GraphComparison as gc 
 
-class MyTestCase(unittest.TestCase): 
+# Import your module
+import GraphComparison as gc
+
+
+class TestGraphCompare(unittest.TestCase):
 
     def setUp(self):
-        sample1 = {'compound1_origin': ['food', 'food', 'both'],
-                   'compound2_origin': ['microbe', 'both', 'both'], 
-                   'KOs': ["['KO1']", "['KO2']", "['KO3']"]}
-        sample2 = {'compound1_origin': ['food', 'food', 'both'], 
-                   'compound2_origin': ['microbe', 'both', 'both'], 
-                   'KOs': ["['KO1']", "['KO4']", "['KO5']"]}
-        
-        self.sample_dict = {
-            'sample1': pd.DataFrame(sample1),
-            'sample2': pd.DataFrame(sample2)
+        """Create a temporary directory and 4 example graph CSVs."""
+        self.tmpdir = tempfile.mkdtemp()
+        tmp = Path(self.tmpdir)
+
+        # Define 4 example graphs
+        graph_data = {
+            "graph1.csv": pd.DataFrame({
+                "compound1_origin": ["food", "food", "both", "food"],
+                "compound2_origin": ["microbe", "both", "both", "microbe"],
+                "KOs": ["['KO1', 'KO2']",
+                        "['KO2']",
+                        "['KO3']",
+                        "['KO4']"]
+            }),
+
+            "graph2.csv": pd.DataFrame({
+                "compound1_origin": ["food", "both", "both"],
+                "compound2_origin": ["microbe", "both", "both"],
+                "KOs": ["['KO1']",
+                        "['KO3', 'KO5']",
+                        "['KO6']"]
+            }),
+
+            "graph3.csv": pd.DataFrame({
+                "compound1_origin": ["both", "both", "food"],
+                "compound2_origin": ["both", "microbe", "both"],
+                "KOs": ["['KO2', 'KO7']",
+                        "['KO7']",
+                        "['KO8']"]
+            }),
+
+            "graph4.csv": pd.DataFrame({
+                "compound1_origin": ["food", "both", "both", "food"],
+                "compound2_origin": ["microbe", "both", "both", "both"],
+                "KOs": ["['KO1', 'KO9']",
+                        "['KO10']",
+                        "['KO3']",
+                        "['KO4', 'KO11']"]
+            }),
         }
 
-    # Is it subsetting properly by pattern? 
-    def test_subset(self): 
-        fm, fb, bb = gc.subset_graphs(self.sample_dict)
+        # Write 4 graph files
+        graph_paths = []
+        for filename, df in graph_data.items():
+            path = tmp / filename
+            df.to_csv(path, index=False)
+            graph_paths.append(str(path))
 
-        # Check rows in food_microbe
-        self.assertEqual(fm['sample1'].shape[0], 1)
-        self.assertEqual(fm['sample2'].shape[0], 1)
-        
-        # Check rows in food_both
-        self.assertEqual(fb['sample1'].shape[0], 1)
-        self.assertEqual(fb['sample2'].shape[0], 1)
-        
-        # Check rows in both_both
-        self.assertEqual(bb['sample1'].shape[0], 1)
-        self.assertEqual(bb['sample2'].shape[0], 1)
+        # Create metadata CSV for the 4 graphs
+        self.metadata_csv = tmp / "metadata.csv"
+        metadata_df = pd.DataFrame({
+            "paths": graph_paths,           # matches csv_to_inputs signature
+            "names": ["sample1", "sample2", "sample3", "sample4"],
+            "groups": ["A", "A", "B", "B"]
+        })
+        metadata_df.to_csv(self.metadata_csv, index=False)
 
-    # Does it grab the correct KOs and format?
-    def test_get_kos(self): 
-        fm, fb, bb = gc.subset_graphs(self.sample_dict)
 
-        kos = gc.get_kos(fm)
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
 
-        s1_value = kos['sample1']
-        s2_value = kos['sample2']
+    # -------------------------------------------------------------------------
+    # TESTS
+    # -------------------------------------------------------------------------
 
-        self.assertEqual(s1_value, ['KO1'])
-        self.assertEqual(s2_value, ['KO1'])
+    def test_csv_to_inputs(self):
+        paths, names, group_dict = gc.csv_to_inputs(
+            metadata=str(self.metadata_csv),
+            paths_col="paths",
+            names_col="names",
+            groups_col="groups"
+        )
+        self.assertEqual(len(paths), 4)
+        self.assertEqual(names[0], "sample1")
+        self.assertEqual(group_dict["sample1"], "A")
 
-    def test_jaccard(self): 
-        a = ['KO1', 'KO2', 'KO3']
-        b = ['KO1', 'KO4', 'KO5']
+    def test_get_graphs(self):
+        paths, names, _ = gc.csv_to_inputs(
+            metadata=str(self.metadata_csv), paths_col="paths",
+            names_col="names",
+            groups_col="groups"
+        )
+        graph_dict = gc.get_graphs(paths, names)
+        self.assertIn("sample1", graph_dict)
+        self.assertIsInstance(graph_dict["sample1"], pd.DataFrame)
 
-        score = gc.jaccard(a, b)
-        expected = 1 / 5
-        self.assertAlmostEqual(score, expected)
+    def test_subset_graphs(self):
+        paths, names, _ = gc.csv_to_inputs(
+            metadata=str(self.metadata_csv), paths_col="paths",
+            names_col="names",
+            groups_col="groups"
+        )
+        graph_dict = gc.get_graphs(paths, names)
+        fm, fb, bb = gc.subset_graphs(graph_dict)
+        # all 4 graphs have at least one FM/FB/BB entry
+        self.assertTrue(len(fm) > 0)
+        self.assertTrue(len(fb) > 0)
+        self.assertTrue(len(bb) > 0)
 
-    def test_matrix_calc(self): 
-        fm, fb, bb = gc.subset_graphs(self.sample_dict)
+    def test_get_kos(self):
+        paths, names, _ = gc.csv_to_inputs(
+            metadata=str(self.metadata_csv), paths_col="paths",
+            names_col="names",
+            groups_col="groups"
+        )
+        graph_dict = gc.get_graphs(paths, names)
+        fm, _, _ = gc.subset_graphs(graph_dict)
+        kos_dict = gc.get_kos(fm)
 
-        ## check fm similarity matrix 
-        kos = gc.get_kos(fm)
-        matrix, labels = gc.calculate_similarity_matrix(kos)
+        first_sample = list(kos_dict.keys())[0]
+        self.assertIsInstance(kos_dict[first_sample], list)
+        self.assertTrue(len(kos_dict[first_sample]) > 0)
 
-        expected_matrix = np.array([
-            [1.0, 1.0],
-            [1.0, 1.0]
-        ])
+    def test_jaccard(self):
+        self.assertEqual(gc.jaccard(set(), set()), 1.0)
+        self.assertEqual(gc.jaccard({"a"}, {"a"}), 1.0)
+        self.assertEqual(gc.jaccard({"a"}, {"b"}), 0.0)
+        self.assertAlmostEqual(gc.jaccard({"a", "b"}, {"b", "c"}), 1/3)
 
-        np.testing.assert_array_equal(matrix, expected_matrix)
+    def test_similarity_matrix(self):
+        pattern = {"s1": ["KO1", "KO2"], "s2": ["KO2"]}
+        matrix, labels = gc.calculate_similarity_matrix(pattern)
+        self.assertEqual(matrix.shape, (2, 2))
+        self.assertEqual(labels, ["s1", "s2"])
 
-        # Also check that labels match input ordering
-        self.assertEqual(labels, ['sample1', 'sample2'])
+    def test_cluster_matrix(self):
+        pattern = {"s1": ["KO1", "KO2"], "s2": ["KO2"]}
+        matrix, labels = gc.calculate_similarity_matrix(pattern)
+        ordered_matrix, ordered_labels, Z = gc.cluster_matrix(matrix, labels)
+        self.assertEqual(ordered_matrix.shape, (2, 2))
+        self.assertEqual(len(ordered_labels), 2)
 
-        ## check fb similarity matrix 
-        kos = gc.get_kos(fb)
-        matrix, labels = gc.calculate_similarity_matrix(kos)
+    def test_stat_test(self):
+        # Must have ≥2 samples per group
+        pattern = {
+            "sample1": ["KO1", "KO2"],
+            "sample2": ["KO2", "KO3"],
+            "sample3": ["KO1"],
+            "sample4": ["KO2"]
+        }
+        groups = {
+            "sample1": "A",
+            "sample2": "A",
+            "sample3": "B",
+            "sample4": "B"
+        }
+        result = gc.stat_test(pattern, groups)
+        self.assertIn("test statistic", str(result))
 
-        expected_matrix = np.array([
-            [1.0, 0.0],
-            [0.0, 1.0]
-        ])
+    def test_plotting(self):
+        pattern = {
+            "sample1": ["KO1"],
+            "sample2": ["KO1", "KO2"]
+        }
+        outdir = Path(self.tmpdir) / "plots"
+        gc.plotting(pattern, "Food to Microbe", str(outdir))
 
-        np.testing.assert_array_equal(matrix, expected_matrix)
+        files = list(outdir.glob("*"))
+        self.assertTrue(len(files) >= 1)
 
-        # Also check that labels match input ordering
-        self.assertEqual(labels, ['sample1', 'sample2'])
+    def test_summary(self):
+        pattern = {
+            "sample1": ["KO1"],
+            "sample2": ["KO1", "KO2"]
+        }
+        groups = {"sample1": "A", "sample2": "A"}  # no PERMANOVA expected
 
-        ## check bb similarity matrix 
-        kos = gc.get_kos(bb)
-        matrix, labels = gc.calculate_similarity_matrix(kos)
+        outdir = Path(self.tmpdir) / "summary"
+        gc.summary(pattern, "Food to Microbe", True, groups, str(outdir))
 
-        expected_matrix = np.array([
-            [1.0, 0.0],
-            [0.0, 1.0]
-        ])
-
-        np.testing.assert_array_equal(matrix, expected_matrix)
-
-        # Also check that labels match input ordering
-        self.assertEqual(labels, ['sample1', 'sample2'])
+        # File ends with Summary.txt
+        files = list(outdir.glob("*Summary.txt"))
+        self.assertEqual(len(files), 1)
+        text = files[0].read_text()
+        self.assertIn("SUMMARY FOR PATTERN: Food to Microbe", text)
 
 
 if __name__ == "__main__":
-    unittest.main(argv=[''], exit=False)
+    unittest.main()

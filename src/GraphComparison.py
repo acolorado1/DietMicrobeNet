@@ -1,240 +1,334 @@
-import pandas as pd 
-import ast 
+from __future__ import annotations
+import argparse
+import ast
+import logging
+import os
+from pathlib import Path
+from typing import Dict, List, Tuple
+
 import numpy as np
-import matplotlib.pyplot as plt 
+import pandas as pd
+import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import linkage, dendrogram, leaves_list
-import argparse 
-import os 
+from scipy.spatial.distance import squareform
+from skbio import DistanceMatrix
+from skbio.stats.distance import permanova
 
-def get_graphs(paths:list, names:list): 
-    """reads in all graph results CSVs and creates a dict with graphs associated with a name 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    Args:
-        paths (list): list of file paths 
-        names (list): list of names 
 
-    Raises:
-        ValueError: paths list and names list must be of same length
-        ValueError: names must not be duplicated 
+def csv_to_inputs(metadata: str, paths_col: str, names_col: str, groups_col: str) -> Tuple[List[str], List[str], Dict[str, str]]:
+    """Read metadata CSV and return paths, names, and optional group dict."""
+    df = pd.read_csv(metadata)
+    for col in (paths_col, names_col):
+        if col not in df.columns:
+            raise ValueError(f"Column '{col}' not found in metadata CSV ({metadata}). Available: {list(df.columns)}")
 
-    Returns:
-        dict: keys are names, values are pandas dataframes  
-    """
-    # make sure number of names and paths are equal 
-    if len(names) != len(paths): 
-        raise ValueError('Number of names not equal to the number of paths provided.')
+    paths_list = df[paths_col].astype(str).tolist()
+    names_list = df[names_col].astype(str).tolist()
 
-    # Put graph results files is a list 
-    graph_dict = {}
-    for index in range(len(paths)):
-        
-        name = names[index]
+    if groups_col:
+        if groups_col not in df.columns:
+            raise ValueError(f"Groups column '{groups_col}' not found in metadata CSV ({metadata}).")
+        # create dict name -> group
+        group_dict = pd.Series(df[groups_col].astype(str).values, index=df[names_col].astype(str)).to_dict()
+    else:
+        group_dict = {}
 
-        # ensure no duplicated names
+    if len(paths_list) != len(names_list):
+        raise ValueError("Number of paths and names differ in metadata CSV.")
+
+    return paths_list, names_list, group_dict
+
+
+def get_graphs(paths: List[str], names: List[str]) -> Dict[str, pd.DataFrame]:
+    """Read each CSV path into a dataframe keyed by the corresponding name."""
+    if len(paths) != len(names):
+        raise ValueError("Number of names not equal to the number of paths provided.")
+
+    graph_dict: Dict[str, pd.DataFrame] = {}
+    for idx, p in enumerate(paths):
+        name = names[idx]
         if name in graph_dict:
-            raise ValueError('Name is duplicated, require all unique names')
-        df = pd.read_csv(paths[index])
+            raise ValueError(f"Duplicate name detected: '{name}'. Names must be unique.")
+        pth = Path(p)
+        if not pth.exists():
+            raise FileNotFoundError(f"Graph CSV not found for sample '{name}': {p}")
+        df = pd.read_csv(pth)
         graph_dict[name] = df
 
     return graph_dict
 
-def subset_graphs(graph_dict:dict):
-    """subset the overall graph dataframe into pattern specific results 
 
-    Args:
-        graph_dict (dict): graph_results CSV as pandas dataframe 
+def subset_graphs(graph_dict: Dict[str, pd.DataFrame]) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+    """Split graph results into the three patterns used downstream.
 
-    Returns:
-        dict, dict, dict: three dictionaries where keys are names and values are pandas dataframes 
+    Validates required columns exist; raises informative errors if not.
     """
-    #initialize dicts for each pattern type 
+    required_cols = {"compound1_origin", "compound2_origin"}
+    for name, df in graph_dict.items():
+        if not required_cols.issubset(df.columns):
+            raise ValueError(f"Missing required columns in graph dataframe for sample '{name}'. Required: {required_cols}. Found: {set(df.columns)}")
+
     food_microbe = {}
     food_both = {}
     both_both = {}
 
-    # separate each graph into patterns 
-    for name, df in graph_dict.items(): 
-        food_microbe[name] = df[(df['compound1_origin']=='food') & (df['compound2_origin']=='microbe')]
-        food_both[name] = df[(df['compound1_origin']=='food') & (df['compound2_origin']=='both')]
-        both_both[name] = df[(df['compound1_origin']=='both') & (df['compound2_origin']=='both')]
-    
-    # return 3 dicts corresponding to each pattern detected 
-    return food_microbe, food_both, both_both 
+    for name, df in graph_dict.items():
+        food_microbe[name] = df[(df["compound1_origin"] == "food") & (df["compound2_origin"] == "microbe")]
+        food_both[name] = df[(df["compound1_origin"] == "food") & (df["compound2_origin"] == "both")]
+        both_both[name] = df[(df["compound1_origin"] == "both") & (df["compound2_origin"] == "both")]
 
-def get_kos(graph_dict:dict):
-    """extract KOs from pandas dataframes representing the graphs 
+    return food_microbe, food_both, both_both
 
-    Args:
-        graph_dict (dict): output of get_graphs()
 
-    Returns:
-        dict: keys are names, values list of KOs no duplicates 
+def _safe_literal_eval(item):
+    """Try to parse a string representation of a list; return empty list on failure."""
+    if item is None or (isinstance(item, float) and np.isnan(item)):
+        return []
+    # If it's already a list/tuple, return as list
+    if isinstance(item, (list, tuple, set)):
+        return list(item)
+    # Strings: try literal_eval, fallback to simple parsing
+    s = str(item).strip()
+    if s == "":
+        return []
+    try:
+        parsed = ast.literal_eval(s)
+        if isinstance(parsed, (list, tuple, set)):
+            return list(parsed)
+        # if a single value (str) returned, wrap in list
+        return [parsed]
+    except Exception:
+        # fallback: remove outer brackets/quotes and split on commas
+        trimmed = s.strip("[](){} ")
+        if trimmed == "":
+            return []
+        return [x.strip().strip("'\"") for x in trimmed.split(",") if x.strip()]
+
+
+def get_kos(graph_dict: Dict[str, pd.DataFrame], ko_column_name: str = "KOs") -> Dict[str, List[str]]:
+    """Extract KOs for each sample from the graph dataframes.
+
+    Ensures unique, sorted KOs for determinism.
     """
-    # get kos for each graph
-    kos_dict = {}
-    for name, df in graph_dict.items(): 
-        ko_column = df['KOs'].to_list() # format: ["['KOXXXX']"]
+    kos_dict: Dict[str, List[str]] = {}
+    for name, df in graph_dict.items():
+        if ko_column_name not in df.columns:
+            logging.warning(f"'{ko_column_name}' column not found in dataframe for '{name}'. Using empty list.")
+            kos_dict[name] = []
+            continue
 
-        # Parse string to list of lists 
-        parsed = [ast.literal_eval(x) for x in ko_column] # format: [['KOXXXX']]
+        ko_series = df[ko_column_name].tolist()
+        parsed_lists = []
+        for entry in ko_series:
+            parsed = _safe_literal_eval(entry)
+            parsed_lists.extend(parsed)
 
-        # unnest the lists 
-        unnested = [item for sublist in parsed for item in sublist] # format: ['KOXXXX']
-
-        # remove duplicates 
-        ko_set = list(set(unnested)) 
-
-        #sort list 
-        ko_set_sort = sorted(ko_set) 
-
-        # append to dict 
-        kos_dict[name] = ko_set_sort
+        # unique and sorted
+        ko_set_sorted = sorted(set(parsed_lists))
+        kos_dict[name] = ko_set_sorted
 
     return kos_dict
 
-def jaccard (a:list, b:list): 
-    """calculate jaccard similarity score between two lists 
 
-    Args:
-        a (list): list of KOs
-        b (list): list of KOs 
-
-    Returns:
-        float: intersection over union between two lists 
-    """
-    set_a = set(a)
-    set_b = set(b)
-    return len(set_a & set_b) / len(set_a | set_b)
+def jaccard(a: set, b: set) -> float:
+    """Jaccard similarity for sets. Returns 1.0 when both empty (by convention)."""
+    union = a | b
+    if not union:
+        return 1.0
+    return len(a & b) / len(union)
 
 
-def calculate_similarity_matrix(pattern_kos:dict): 
-    """for each pattern dictionary create a matrix of jaccard similarity values 
+def calculate_similarity_matrix(pattern_kos: Dict[str, List[str]]) -> Tuple[np.ndarray, List[str]]:
+    """Return Jaccard similarity matrix (square) and labels.
 
-    Args:
-        pattern_kos (dict): keys are names, values are list of KOs 
-
-    Returns:
-        list: list of list representing a matrix 
+    Internally converts lists to sets once for speed.
     """
     labels = list(pattern_kos.keys())
     n = len(labels)
-    matrix = np.zeros((n,n))
+    sets = {name: set(kos) for name, kos in pattern_kos.items()}
+    matrix = np.zeros((n, n), dtype=float)
 
-    for i, k1 in enumerate(labels):
-        for j, k2 in enumerate(labels):
-            matrix[i, j] = jaccard(pattern_kos[k1], pattern_kos[k2])
+    for i, name_i in enumerate(labels):
+        si = sets[name_i]
+        for j, name_j in enumerate(labels):
+            sj = sets[name_j]
+            matrix[i, j] = jaccard(si, sj)
 
     return matrix, labels
 
-def cluster_matrix(matrix:list, labels:list): 
-    """from calculated matrix order using hierarchical clustering 
 
-    Args:
-        matrix (list): list of list representing a matrix 
-        labels (list): list of names used as labels for plotting  
+def cluster_matrix(matrix: np.ndarray, labels: List[str]) -> Tuple[np.ndarray, List[str], np.ndarray]:
+    """Cluster using hierarchical average linkage. Returns ordered square matrix, labels, and linkage Z."""
+    if matrix.size == 0:
+        return matrix, labels, np.array([])
 
-    Returns:
-        list, list, list: list of lists representing an ordered matrix, 
-                          list of ordered labels, 
-                          linkage matrix returned by SciPy
-    """
-    distance_matrix = 1-matrix
-    Z = linkage(distance_matrix, method='average') # hierarchical clustering 
-    leaf_order = leaves_list(Z) # get leaf order 
+    # distance matrix (0 on diagonal)
+    distance_matrix = 1.0 - matrix
 
-    # reorder matrix and labels 
-    clustered_matrix = matrix[leaf_order][:, leaf_order]
+    # For clustering, SciPy expects condensed form:
+    if len(distance_matrix) == 1:
+        # Single item: nothing to cluster
+        Z = np.array([])
+        leaf_order = np.array([0], dtype=int)
+    else:
+        condensed = squareform(distance_matrix, checks=True)
+        Z = linkage(condensed, method="average")
+        leaf_order = leaves_list(Z)
+
+    clustered_matrix = distance_matrix.copy()  # reuse shape
+    if clustered_matrix.size:
+        clustered_matrix = matrix[np.ix_(leaf_order, leaf_order)]
     clustered_labels = [labels[i] for i in leaf_order]
 
-    return clustered_matrix, clustered_labels, Z 
+    return clustered_matrix, clustered_labels, Z
 
-def plotting(pattern_dict:dict, pattern_name:str, output:str):
-    """given a dict containing names as keys and list of KOs as values 
-    this script creates a similarity matrix and a dendrogram which are saved 
 
-    Args:
-        pattern_dict (dict): keys are names and values are list of KOs 
-        pattern_name (str): name of the pattern (e.g., Food to Microbe)
-        output (str): directory where output PNG files will go 
+def stat_test(pattern_dict: Dict[str, List[str]], group_labels: Dict[str, str], permutations: int = 5000, seed: int = 5):
+    """Run PERMANOVA on the Jaccard distance matrix given valid group labels.
+
+    Validates that groups are provided and that each group has at least 2 samples.
     """
+    if not group_labels:
+        raise ValueError("No group labels provided for statistical test.")
+
     matrix, labels = calculate_similarity_matrix(pattern_dict)
+    if len(labels) < 2:
+        raise ValueError("Need at least 2 samples to run PERMANOVA.")
+
+    # Ensure all labels have group entries
+    missing = [lab for lab in labels if lab not in group_labels]
+    if missing:
+        raise KeyError(f"Missing group labels for samples: {missing}")
+
+    groups = [group_labels[lab] for lab in labels]
+    # Check group counts
+    counts = pd.Series(groups).value_counts()
+    if (counts < 2).any():
+        raise ValueError(f"Each group must have at least 2 samples for PERMANOVA. Group sizes:\n{counts.to_dict()}")
+
+    dm = DistanceMatrix(1.0 - matrix, labels)
+    return permanova(dm, grouping=groups, permutations=permutations, seed=seed)
+
+
+def plotting(pattern_dict: Dict[str, List[str]], pattern_name: str, output: str):
+    """Create and save heatmap and dendrogram for the given pattern."""
+    output_dir = Path(output)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    matrix, labels = calculate_similarity_matrix(pattern_dict)
+
+    if len(labels) == 0:
+        logging.info(f"No samples for pattern '{pattern_name}'; skipping plots.")
+        return
+
     ordered_matrix, ordered_labels, Z = cluster_matrix(matrix=matrix, labels=labels)
-    
-    # Heatmap
+
     n = len(ordered_labels)
-    plt.figure(figsize=(10, 8))
-    plt.imshow(ordered_matrix, cmap='viridis')
+    # Heatmap
+    plt.figure(figsize=(max(6, n * 0.5), max(4, n * 0.5)))
+    plt.imshow(ordered_matrix, cmap="viridis", vmin=0.0, vmax=1.0, aspect="auto")
     plt.xticks(range(n), ordered_labels, rotation=90)
     plt.yticks(range(n), ordered_labels)
     plt.colorbar(label="Jaccard Similarity")
     plt.title("Clustered Jaccard Similarity Heatmap: " + pattern_name)
     plt.tight_layout()
-    plt.savefig(output + pattern_name.replace(" ", "") + 'GraphComparisons_Heatmap.png')
+    heatmap_file = output_dir / f"{pattern_name.replace(' ', '')}_GraphComparisons_Heatmap.png"
+    plt.savefig(heatmap_file)
     plt.close()
+    logging.info(f"Saved heatmap to {heatmap_file}")
 
-    # Dendrogram
-    plt.figure(figsize=(8, 4))
-    dendrogram(Z, labels=ordered_labels, leaf_rotation=90)
-    plt.title("Hierarchical Clustering Dendrogram: " + pattern_name)
-    plt.tight_layout()
-    plt.savefig(output + pattern_name.replace(" ", "") + 'GraphComparisons_Dendrogram.png')
-    plt.close()
+    # Dendrogram (only if more than 1 sample)
+    if n > 1 and Z.size:
+        plt.figure(figsize=(max(6, n * 0.2), 4))
+        dendrogram(Z, labels=ordered_labels, leaf_rotation=90)
+        plt.title("Hierarchical Clustering Dendrogram: " + pattern_name)
+        plt.tight_layout()
+        dend_file = output_dir / f"{pattern_name.replace(' ', '')}_GraphComparisons_Dendrogram.png"
+        plt.savefig(dend_file)
+        plt.close()
+        logging.info(f"Saved dendrogram to {dend_file}")
+    else:
+        logging.info(f"Not enough samples to produce dendrogram for pattern '{pattern_name}' (n={n}).")
 
-def summary(pattern_dict:dict, pattern_name:str, output:str):
-    """create a summary text file of the graph comparisons 
 
-    Args:
-        pattern_dict (dict): values are names (e.g., sample IDs), and keys are list of KOs 
-        pattern_name (str): identifies which pattern is being summarised 
-        output (str): directory were output txt file will go 
-    """
-    # find intersection 
-    intersection_set = set()
-    for ko_list in pattern_dict.values():
-        intersection_set.intersection(set(ko_list))
+def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, groups_dict: Dict[str, str], output: str):
+    """Write a summary file including intersection KOs, unique KOs per sample, and optional PERMANOVA results."""
+    output_dir = Path(output)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    matrix, labels = calculate_similarity_matrix(pattern_dict)
+
+    # Intersection across all sets
+    all_sets = [set(v) for v in pattern_dict.values()]
+    if all_sets:
+        intersection_set = set.intersection(*all_sets)
+    else:
+        intersection_set = set()
 
     unique_dict = {
-        name: list(set(ko_list) - intersection_set)
+        name: sorted(set(ko_list) - intersection_set)
         for name, ko_list in pattern_dict.items()
     }
 
-    directory = output + pattern_name.replace(" ", "") + "GraphComparisons_Summary.txt"
+    summary_file = output_dir / f"{pattern_name.replace(' ', '')}_GraphComparisons_Summary.txt"
+    with open(summary_file, "w") as fh:
+        fh.write(f"##### SUMMARY FOR PATTERN: {pattern_name} #####\n")
+        fh.write(f"Number of compounds shared: {len(intersection_set)}\n")
 
-    with open(directory, 'w') as file_object: 
-        file_object.write(f'##### SUMMARY FOR PATTERN: {pattern_name} #####\n')
-        file_object.write(f'Number of compounds shared: {len(list(intersection_set))}\n')
+        if stat:
+            try:
+                stat_results = stat_test(pattern_dict, groups_dict)
+                fh.write("\n##### PERMANOVA RESULTS ######\n")
+                fh.write(str(stat_results) + "\n")
+            except Exception as e:
+                fh.write("\n##### PERMANOVA FAILED ######\n")
+                fh.write(f"Reason: {repr(e)}\n")
+                logging.warning(f"PERMANOVA failed for pattern '{pattern_name}': {e}")
 
         for name, unique_list in unique_dict.items():
-            file_object.write(f'Unique compounds to {name}: {len(unique_list)}\n')
+            fh.write(f"Unique compounds to {name}: {len(unique_list)}\n")
 
-        file_object.write(f'\n\n\n ###### LISTS OF KOs ######\n\n\n')
-        file_object.write(f'Intersection KOs: {list(intersection_set)}\n\n')
+        fh.write("\n\n\n ###### LISTS OF KOs ######\n\n\n")
+        fh.write(f"Intersection KOs: {sorted(intersection_set)}\n\n")
 
-        for name, unique_list in unique_dict.items(): 
-            file_object.write(f'Unique KOs for {name}: {unique_list}\n\n')
+        for name, unique_list in unique_dict.items():
+            fh.write(f"Unique KOs for {name}: {unique_list}\n\n")
 
-    file_object.close()
+    logging.info(f"Saved summary to {summary_file}")
 
-# --- Argument parser ---
+
 def main():
     parser = argparse.ArgumentParser(description="Compare graph results across samples using KOs and Jaccard similarity.")
-    parser.add_argument("-p", "--paths", nargs='+', required=True, help="Paths to CSV graph results files")
-    parser.add_argument("-n", "--names", nargs='+', required=True, help="Names corresponding to each CSV file")
+    parser.add_argument("-m", "--metadata", required=True, help="Metadata CSV containing file paths, names, and groups")
+    parser.add_argument("-p", "--paths", required=True, help="Name of column containing file paths")
+    parser.add_argument("-n", "--names", required=True, help="Name of column containing names of graphs (e.g., sampleID)")
+    parser.add_argument("-s", "--stat_test", action="store_true", help="If statistical test for group comparison wanted include this parameter")
+    parser.add_argument("-g", "--groups", help="Name of column containing group labels", default="")
     parser.add_argument("-o", "--output", required=True, help="Output directory for plots and summary files")
+    parser.add_argument("--ko_column", help="Name of KOs column in graph CSVs (default: 'KOs')", default="KOs")
     args = parser.parse_args()
 
-    graphs_dict = get_graphs(paths=args.paths, names=args.names)
+    if args.stat_test and not args.groups:
+        parser.error("Statistical test requested but no groups column provided (-g/--groups).")
+
+    paths, names, group_dict = csv_to_inputs(metadata=args.metadata, paths_col=args.paths, names_col=args.names, groups_col=args.groups if args.stat_test else "")
+
+    graphs_dict = get_graphs(paths=paths, names=names)
     food_microbe_dict, food_both_dict, both_both_dict = subset_graphs(graph_dict=graphs_dict)
-    food_microbe_kos = get_kos(food_microbe_dict)
-    food_both_kos = get_kos(food_both_dict)
-    both_both_kos = get_kos(both_both_dict)
+
+    food_microbe_kos = get_kos(food_microbe_dict, ko_column_name=args.ko_column)
+    food_both_kos = get_kos(food_both_dict, ko_column_name=args.ko_column)
+    both_both_kos = get_kos(both_both_dict, ko_column_name=args.ko_column)
 
     patterns = [food_microbe_kos, food_both_kos, both_both_kos]
-    pattern_names = ['Food to Microbe', 'Food to Both', 'Both to Both']
+    pattern_names = ["Food to Microbe", "Food to Both", "Both to Both"]
 
-    for index in range(len(patterns)): 
-        plotting(patterns[index], pattern_names[index], args.output)
-        summary(patterns[index], pattern_names[index], args.output)
+    for pat_dict, pat_name in zip(patterns, pattern_names):
+        plotting(pat_dict, pat_name, args.output)
+        summary(pattern_dict=pat_dict, pattern_name=pat_name, stat=args.stat_test, groups_dict=group_dict, output=args.output)
+
 
 if __name__ == "__main__":
     main()
