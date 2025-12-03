@@ -11,9 +11,6 @@ N_WEIGHTS     = config.get("n_weights", False)
 INCLUDE_ORGS  = config.get("include_orgs", False)
 ABUNDANCE_COL = config.get("abundance_col", " ") 
 ALL_FOOD      = config.get("all_food", False)
-URI = config.get("uri", " ")
-USER = config.get("user", " ")
-PASSWORD = config.get("p", " ")
 
 print("Running with config:")
 print(f"  Directories:    {DIRECTORIES}")
@@ -24,9 +21,6 @@ print(f"  N Weights:      {N_WEIGHTS}")
 print(f"  Include Orgs:   {INCLUDE_ORGS}")
 print(f"  Abundance Col:  {ABUNDANCE_COL}")
 print(f"  All Food:       {ALL_FOOD}")
-print(f"  Neo4j URI:      {URI}")
-print(f"  Neo4j username: {USER}")
-print(f"  Neo4j password: {PASSWORD}")
 
 # -------------------------------------------------------------
 # Select correct food_meta file depending on ALL_FOOD
@@ -183,25 +177,18 @@ if METABOLOME:
                     --output {output.report}
                 """
     
-    rule RunNeo4j_met: 
+    rule RunGraph_met: 
         input: 
             nodes = "{dir}/output_met/graph/M_nodes_df.csv",
             edges = "{dir}/output_met/graph/M_edges_df.csv"
         output: 
             output = "{dir}/output_met/graph/graph_results.csv"
-        params: 
-            uri = URI, 
-            user = USER, 
-            password = PASSWORD
         conda: "DMnet_env.yaml"
         shell:
             """
-            python src/run_Neo4j.py \
+            python src/run_graph.py \
                 --n {input.nodes} \
                 --e {input.edges} \
-                --uri {params.uri} \
-                --p {params.password} \
-                --user {params.user} \
                 --o {output.output}
             """
         
@@ -353,25 +340,18 @@ if GENOME:
                     --output {output.report}
                 """
     
-    rule RunNeo4j_gen: 
+    rule RunGraph_gen: 
         input: 
             nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
             edges = "{dir}/output_gen/graph/WG_edges_df.csv"
         output: 
             output = "{dir}/output_gen/graph/graph_results.csv"
-        params: 
-            uri = URI, 
-            user = USER, 
-            password = PASSWORD
         conda: "DMnet_env.yaml"
         shell:
             """
-            python src/run_Neo4j.py \
+            python src/run_graph.py \
                 --n {input.nodes} \
                 --e {input.edges} \
-                --uri {params.uri} \
-                --p {params.password} \
-                --user {params.user} \
                 --o {output.output}
             """
     

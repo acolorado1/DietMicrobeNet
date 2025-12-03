@@ -52,4 +52,4 @@ dependencies:
   - pip:
     - AMON-bio
     - lxml
-    - neo4j
+    - networkx
