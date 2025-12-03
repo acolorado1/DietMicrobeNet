@@ -8,14 +8,14 @@ def main():
     parser = argparse.ArgumentParser(description="Wrapper for Snakemake workflow")
 
     # Workflow config
-    parser.add_argument("--directories", nargs="+", required=True, help="List of input directories")
+    parser.add_argument("--directories", nargs="+", required=True, help="List of input directories, MUST be absolute paths")
     parser.add_argument("--metabolome", action="store_true", help="Enable metabolome analysis")
     parser.add_argument("--genome", action="store_true", help="Enable genome analysis")
     parser.add_argument("--e-weights", action="store_true", help="Enable edge weights: read abundance")
     parser.add_argument("--n-weights", action="store_true", help="Enable node weights: food frequency")
     parser.add_argument("--include-orgs", action="store_true", help="Include organisms")
     parser.add_argument("--abundance-col", type=str, default="Abundance_RPKs", help="Column name for abundance")
-    parser.add_argument("--all-food", action="store_false", help="Enable use of all foods from foodb")
+    parser.add_argument("--all-food", action="store_true", help="Enable use of all foods from foodb")
 
     # Snakemake execution options
     parser.add_argument("--cores", type=int, default=1, help="Number of cores to use")

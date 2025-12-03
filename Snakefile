@@ -32,7 +32,7 @@ def select_meta_file(wildcards):
     CreateFoodMetadata_met rule to generate it.
     """
     if ALL_FOOD:
-        return f"{wildcards.dir}/Data/AllFood/food_meta.csv"
+        return f"/Data/AllFood/food_meta.csv"
     else:
         return f"{wildcards.dir}/output_met/food_meta.csv"
 
@@ -43,7 +43,7 @@ def select_meta_file(wildcards):
 rule all:
     input:
         # Metabolome requirements 
-        (expand("{dir}/output_met/food_compound_report.html", dir=DIRECTORIES) if METABOLOME else []),
+        (expand("{dir}/output_met/food_compound_report.html", dir=DIRECTORIES) if METABOLOME and not ALL_FOOD else []),
         (expand("{dir}/output_met/microbe_compound_report.html", dir=DIRECTORIES) if METABOLOME and INCLUDE_ORGS and N_WEIGHTS else []),
         (expand("{dir}/output_met/graph/graph_results_report.html", dir=DIRECTORIES) if METABOLOME else []),
 
@@ -85,20 +85,20 @@ if METABOLOME:
                 --ExDes_file Data/CompoundExternalDescriptor.csv \
                 --meta_o_file {output.f_meta}
             """
-
-    rule CreateCompoundReport_met:
-        input: 
-            f_meta = select_meta_file,
-            graphs = "{dir}/output_met/graph/M_nodes_df.csv" 
-        output: 
-            report = "{dir}/output_met/food_compound_report.html"
-        conda: "DMnet_env.yaml"
-        shell:
-            """
-            python {workflow.basedir}src/Metabolome_proc/RenderCompoundAnalysis.py \
-                --food_file {input.f_meta} \
-                --output {output.report}
-            """
+    if not ALL_FOOD:
+        rule CreateCompoundReport_met:
+            input: 
+                f_meta = select_meta_file,
+                graphs = "{dir}/output_met/graph/M_nodes_df.csv" 
+            output: 
+                report = "{dir}/output_met/food_compound_report.html"
+            conda: "DMnet_env.yaml"
+            shell:
+                """
+                python {workflow.basedir}/src/Metabolome_proc/RenderCompoundAnalysis.py \
+                    --food_file {input.f_meta} \
+                    --output {output.report}
+                """
     
     rule PrepareAMONOutput_met:
         input: 
@@ -171,7 +171,7 @@ if METABOLOME:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python {workflow.basedir}src/RenderCompoundAnalysis_Microbe.py \
+                python {workflow.basedir}/src/RenderCompoundAnalysis_Microbe.py \
                     --node_file {input.nodes} \
                     --edge_file {input.edges} \
                     --output {output.report}
@@ -201,7 +201,7 @@ if METABOLOME:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python {workflow.basedir}src/RenderGraphResults_Report.py \
+            python {workflow.basedir}/src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
                 --rxn_json {input.rxn_json} \
                 --output {output.output}
@@ -319,7 +319,7 @@ if GENOME:
             o = "{dir}/output_gen/food_compound_report.html"
         shell: 
             """
-            python {workflow.basedir}src/WholeGenome_proc/RenderCompoundAnalysis.py \
+            python {workflow.basedir}/src/WholeGenome_proc/RenderCompoundAnalysis.py \
                 --node_file {input.node_file} \
                 --output {output.o}
             """
@@ -334,7 +334,7 @@ if GENOME:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python {workflow.basedir}src/RenderCompoundAnalysis_Microbe.py \
+                python {workflow.basedir}/src/RenderCompoundAnalysis_Microbe.py \
                     --node_file {input.nodes} \
                     --edge_file {input.edges} \
                     --output {output.report}
@@ -364,7 +364,7 @@ if GENOME:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python {workflow.basedir}src/RenderGraphResults_Report.py \
+            python {workflow.basedir}/src/RenderGraphResults_Report.py \
                 --patterns {input.graph_res} \
                 --rxn_json {input.rxn_json} \
                 --output {output.output}
