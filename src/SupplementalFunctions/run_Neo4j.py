@@ -1,3 +1,8 @@
+# script developed for Neo4j integration
+# better for graphs >1M nodes, so far they have been smaller 
+# can replace run_graph.py if needed 
+# requires neo4j desktop 
+
 from neo4j import GraphDatabase
 import pandas as pd
 from tqdm import tqdm
