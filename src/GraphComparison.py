@@ -18,8 +18,8 @@ from skbio.stats.distance import permanova
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 
-def csv_to_inputs(metadata: str, paths_col: str, names_col: str, groups_col: str) -> Tuple[List[str], List[str], Dict[str, str]]:
-    """Read metadata CSV and return paths, names, and optional group dict."""
+def csv_to_inputs(metadata: str, paths_col: str, names_col: str) -> Tuple[List[str], List[str]]:
+    """Read metadata CSV and return paths and names"""
     df = pd.read_csv(metadata)
     for col in (paths_col, names_col):
         if col not in df.columns:
@@ -28,18 +28,10 @@ def csv_to_inputs(metadata: str, paths_col: str, names_col: str, groups_col: str
     paths_list = df[paths_col].astype(str).tolist()
     names_list = df[names_col].astype(str).tolist()
 
-    if groups_col:
-        if groups_col not in df.columns:
-            raise ValueError(f"Groups column '{groups_col}' not found in metadata CSV ({metadata}).")
-        # create dict name -> group
-        group_dict = pd.Series(df[groups_col].astype(str).values, index=df[names_col].astype(str)).to_dict()
-    else:
-        group_dict = {}
-
     if len(paths_list) != len(names_list):
         raise ValueError("Number of paths and names differ in metadata CSV.")
 
-    return paths_list, names_list, group_dict
+    return paths_list, names_list
 
 
 def get_graphs(paths: List[str], names: List[str]) -> Dict[str, pd.DataFrame]:
@@ -186,31 +178,35 @@ def cluster_matrix(matrix: np.ndarray, labels: List[str]) -> Tuple[np.ndarray, L
     return clustered_matrix, clustered_labels, Z
 
 
-def stat_test(pattern_dict: Dict[str, List[str]], group_labels: Dict[str, str], permutations: int = 5000, seed: int = 5):
-    """Run PERMANOVA on the Jaccard distance matrix given valid group labels.
-
-    Validates that groups are provided and that each group has at least 2 samples.
+def stat_test(pattern_dict: Dict[str, List[str]], metadata: pd.DataFrame, group_col: str, permutations: int = 5000, seed: int = 5):
     """
-    if not group_labels:
-        raise ValueError("No group labels provided for statistical test.")
+    Run PERMANOVA on the Jaccard distance matrix for the given pattern.
 
+    - pattern_dict: dictionary of sample_name -> list of KOs
+    - metadata: metadata dataframe with sample names as index
+    - group_col: column in metadata to use as grouping
+    """
     matrix, labels = calculate_similarity_matrix(pattern_dict)
+
     if len(labels) < 2:
-        raise ValueError("Need at least 2 samples to run PERMANOVA.")
+        raise ValueError(f"Need at least 2 samples to run PERMANOVA for {group_col}.")
 
-    # Ensure all labels have group entries
-    missing = [lab for lab in labels if lab not in group_labels]
-    if missing:
-        raise KeyError(f"Missing group labels for samples: {missing}")
+    # Subset metadata to match the labels
+    try:
+        group_series = metadata.loc[labels, group_col]
+    except KeyError as e:
+        missing = set(labels) - set(metadata.index)
+        raise KeyError(f"Some samples missing in metadata for PERMANOVA: {missing}") from e
 
-    groups = [group_labels[lab] for lab in labels]
-    # Check group counts
-    counts = pd.Series(groups).value_counts()
+    # Check each group has at least 2 samples
+    counts = group_series.value_counts()
     if (counts < 2).any():
-        raise ValueError(f"Each group must have at least 2 samples for PERMANOVA. Group sizes:\n{counts.to_dict()}")
+        raise ValueError(f"Each group must have at least 2 samples. Group sizes:\n{counts.to_dict()}")
 
+    # Distance matrix
     dm = DistanceMatrix(1.0 - matrix, labels)
-    return permanova(dm, grouping=groups, permutations=permutations, seed=seed)
+    return permanova(distance_matrix=dm, grouping=group_series, permutations=permutations, seed=seed)
+
 
 
 def plotting(pattern_dict: Dict[str, List[str]], pattern_name: str, output: str):
@@ -254,11 +250,10 @@ def plotting(pattern_dict: Dict[str, List[str]], pattern_name: str, output: str)
         logging.info(f"Not enough samples to produce dendrogram for pattern '{pattern_name}' (n={n}).")
 
 
-def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, groups_dict: Dict[str, str], output: str):
+def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, metadata: pd.DataFrame, groups:list, output: str):
     """Write a summary file including intersection KOs, unique KOs per sample, and optional PERMANOVA results."""
     output_dir = Path(output)
     output_dir.mkdir(parents=True, exist_ok=True)
-    matrix, labels = calculate_similarity_matrix(pattern_dict)
 
     # Intersection across all sets
     all_sets = [set(v) for v in pattern_dict.values()]
@@ -278,15 +273,18 @@ def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, g
         fh.write(f"Number of compounds shared: {len(intersection_set)}\n")
 
         if stat:
-            try:
-                stat_results = stat_test(pattern_dict, groups_dict)
-                fh.write("\n##### PERMANOVA RESULTS ######\n")
-                fh.write(str(stat_results) + "\n")
-            except Exception as e:
-                fh.write("\n##### PERMANOVA FAILED ######\n")
-                fh.write(f"Reason: {repr(e)}\n")
-                logging.warning(f"PERMANOVA failed for pattern '{pattern_name}': {e}")
-
+            for group in groups: 
+                try:
+                    stat_results = stat_test(pattern_dict=pattern_dict, metadata=metadata, group_col=group)
+                    fh.write(f"\n##### PERMANOVA RESULTS FOR {group} ######\n")
+                    fh.write(str(stat_results) + "\n")
+                    fh.write("\n")
+                except Exception as e:
+                    fh.write(f"\n##### PERMANOVA FAILED FOR {group} ######\n")
+                    fh.write(f"Reason: {repr(e)}\n")
+                    logging.warning(f"PERMANOVA failed for pattern '{pattern_name}': {e}")
+        
+        fh.write("\n##### UNIQUE COMPOUNDS #####\n")
         for name, unique_list in unique_dict.items():
             fh.write(f"Unique compounds to {name}: {len(unique_list)}\n")
 
@@ -301,19 +299,18 @@ def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, g
 
 def main():
     parser = argparse.ArgumentParser(description="Compare graph results across samples using KOs and Jaccard similarity.")
-    parser.add_argument("-m", "--metadata", required=True, help="Metadata CSV containing file paths, names, and groups")
+    parser.add_argument("-m", "--metadata", required=True, help="Metadata CSV containing file paths and names")
     parser.add_argument("-p", "--paths", required=True, help="Name of column containing file paths")
     parser.add_argument("-n", "--names", required=True, help="Name of column containing names of graphs (e.g., sampleID)")
     parser.add_argument("-s", "--stat_test", action="store_true", help="If statistical test for group comparison wanted include this parameter")
-    parser.add_argument("-g", "--groups", help="Name of column containing group labels", default="")
+    parser.add_argument("-g", "--groups", help="Names of columns for use in PERMANOVA, if multiple separate by a comma e.g., cohort,diet,location", default="")
     parser.add_argument("-o", "--output", required=True, help="Output directory for plots and summary files")
     parser.add_argument("--ko_column", help="Name of KOs column in graph CSVs (default: 'KOs')", default="KOs")
     args = parser.parse_args()
 
-    if args.stat_test and not args.groups:
-        parser.error("Statistical test requested but no groups column provided (-g/--groups).")
-
-    paths, names, group_dict = csv_to_inputs(metadata=args.metadata, paths_col=args.paths, names_col=args.names, groups_col=args.groups if args.stat_test else "")
+    md = pd.read_csv(args.metadata)
+    md = md.set_index(args.names) # must index by names 
+    paths, names = csv_to_inputs(metadata=args.metadata, paths_col=args.paths, names_col=args.names)
 
     graphs_dict = get_graphs(paths=paths, names=names)
     food_microbe_dict, food_both_dict, both_both_dict = subset_graphs(graph_dict=graphs_dict)
@@ -325,9 +322,10 @@ def main():
     patterns = [food_microbe_kos, food_both_kos, both_both_kos]
     pattern_names = ["Food to Microbe", "Food to Both", "Both to Both"]
 
+    groups = args.groups.split(',')
     for pat_dict, pat_name in zip(patterns, pattern_names):
         plotting(pat_dict, pat_name, args.output)
-        summary(pattern_dict=pat_dict, pattern_name=pat_name, stat=args.stat_test, groups_dict=group_dict, output=args.output)
+        summary(pattern_dict=pat_dict, pattern_name=pat_name, stat=args.stat_test, metadata=md, groups=groups, output=args.output)
 
 
 if __name__ == "__main__":
