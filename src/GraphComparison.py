@@ -249,6 +249,9 @@ def plotting(pattern_dict: Dict[str, List[str]], pattern_name: str, output: str)
     else:
         logging.info(f"Not enough samples to produce dendrogram for pattern '{pattern_name}' (n={n}).")
 
+    # save similarity matrix 
+    np.savetxt(f"{output_dir}/SimilarityMatrix_{pattern_name}.csv", matrix, delimiter=',')
+
 
 def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, metadata: pd.DataFrame, groups:list, output: str):
     """Write a summary file including intersection KOs, unique KOs per sample, and optional PERMANOVA results."""
