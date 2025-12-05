@@ -32,7 +32,7 @@ def select_meta_file(wildcards):
     CreateFoodMetadata_met rule to generate it.
     """
     if ALL_FOOD:
-        return f"/Data/AllFood/food_meta.csv"
+        return f"Data/AllFood/food_meta.csv"
     else:
         return f"{wildcards.dir}/output_met/food_meta.csv"
 
