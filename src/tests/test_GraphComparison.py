@@ -79,31 +79,27 @@ class TestGraphCompare(unittest.TestCase):
     # -------------------------------------------------------------------------
 
     def test_csv_to_inputs(self):
-        paths, names, group_dict = gc.csv_to_inputs(
+        paths, names = gc.csv_to_inputs(
             metadata=str(self.metadata_csv),
             paths_col="paths",
-            names_col="names",
-            groups_col="groups"
+            names_col="names"
         )
         self.assertEqual(len(paths), 4)
         self.assertEqual(names[0], "sample1")
-        self.assertEqual(group_dict["sample1"], "A")
 
     def test_get_graphs(self):
-        paths, names, _ = gc.csv_to_inputs(
+        paths, names = gc.csv_to_inputs(
             metadata=str(self.metadata_csv), paths_col="paths",
-            names_col="names",
-            groups_col="groups"
+            names_col="names"
         )
         graph_dict = gc.get_graphs(paths, names)
         self.assertIn("sample1", graph_dict)
         self.assertIsInstance(graph_dict["sample1"], pd.DataFrame)
 
     def test_subset_graphs(self):
-        paths, names, _ = gc.csv_to_inputs(
+        paths, names = gc.csv_to_inputs(
             metadata=str(self.metadata_csv), paths_col="paths",
-            names_col="names",
-            groups_col="groups"
+            names_col="names"
         )
         graph_dict = gc.get_graphs(paths, names)
         fm, fb, bb = gc.subset_graphs(graph_dict)
@@ -113,10 +109,9 @@ class TestGraphCompare(unittest.TestCase):
         self.assertTrue(len(bb) > 0)
 
     def test_get_kos(self):
-        paths, names, _ = gc.csv_to_inputs(
+        paths, names = gc.csv_to_inputs(
             metadata=str(self.metadata_csv), paths_col="paths",
-            names_col="names",
-            groups_col="groups"
+            names_col="names"
         )
         graph_dict = gc.get_graphs(paths, names)
         fm, _, _ = gc.subset_graphs(graph_dict)
@@ -146,21 +141,37 @@ class TestGraphCompare(unittest.TestCase):
         self.assertEqual(len(ordered_labels), 2)
 
     def test_stat_test(self):
-        # Must have ≥2 samples per group
+        import pandas as pd
+
+        # Pattern dictionary
         pattern = {
             "sample1": ["KO1", "KO2"],
             "sample2": ["KO2", "KO3"],
-            "sample3": ["KO1"],
-            "sample4": ["KO2"]
+            "sample3": ["KO1", "KO2"],  # ensure ≥2 samples per group
+            "sample4": ["KO2", "KO3"]
         }
+
+        # Groups dictionary
         groups = {
             "sample1": "A",
             "sample2": "A",
             "sample3": "B",
             "sample4": "B"
         }
-        result = gc.stat_test(pattern, groups)
+
+        # Convert to metadata DataFrame
+        metadata = pd.DataFrame({
+            "group": groups
+        })
+        metadata.index.name = "sample"
+        metadata.index = list(groups.keys())
+
+        # Run the PERMANOVA test
+        result = gc.stat_test(pattern, metadata=metadata, group_col="group")
+
+        # Check output
         self.assertIn("test statistic", str(result))
+
 
     def test_plotting(self):
         pattern = {
@@ -174,20 +185,27 @@ class TestGraphCompare(unittest.TestCase):
         self.assertTrue(len(files) >= 1)
 
     def test_summary(self):
+        import pandas as pd
+        from pathlib import Path
+
         pattern = {
             "sample1": ["KO1"],
             "sample2": ["KO1", "KO2"]
         }
         groups = {"sample1": "A", "sample2": "A"}  # no PERMANOVA expected
 
-        outdir = Path(self.tmpdir) / "summary"
-        gc.summary(pattern, "Food to Microbe", True, groups, str(outdir))
+        metadata = pd.DataFrame({"group": groups})
+        metadata.index.name = "sample"
+        metadata.index = list(groups.keys())
 
-        # File ends with Summary.txt
+        outdir = Path(self.tmpdir) / "summary"
+        gc.summary(pattern, "Food to Microbe", True, metadata, ["group"], str(outdir))
+
         files = list(outdir.glob("*Summary.txt"))
         self.assertEqual(len(files), 1)
         text = files[0].read_text()
         self.assertIn("SUMMARY FOR PATTERN: Food to Microbe", text)
+
 
 
 if __name__ == "__main__":
