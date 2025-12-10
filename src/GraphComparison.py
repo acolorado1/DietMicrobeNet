@@ -2,7 +2,6 @@ from __future__ import annotations
 import argparse
 import ast
 import logging
-import os
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -250,7 +249,9 @@ def plotting(pattern_dict: Dict[str, List[str]], pattern_name: str, output: str)
         logging.info(f"Not enough samples to produce dendrogram for pattern '{pattern_name}' (n={n}).")
 
     # save similarity matrix 
-    np.savetxt(f"{output_dir}/SimilarityMatrix_{pattern_name}.csv", matrix, delimiter=',')
+    logging.info(f"Saved similarity matrix to {output_dir}/SimilarityMatrix_{pattern_name}.csv ")
+    df = pd.DataFrame(matrix, columns=labels)
+    df.to_csv(f"{output_dir}/SimilarityMatrix_{pattern_name}.csv", index=False)
 
 
 def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, metadata: pd.DataFrame, groups:list, output: str):
