@@ -9,13 +9,13 @@ Every user will need to set up and install this program the same way. To do this
 After getting set up, you will have decide if you want to run each step manually or use the provided Snakemake Workflow. 
 
 * For **manual approach** follow steps 2-5 in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
-* For **Snakemake Workflow** follow [step 2](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items), then run [Snakemake](https://github.com/acolorado1/DietMicrobeNet/wiki/Snakemake-Workflow-(Steps-3%E2%80%904)), then run [step 5](https://github.com/acolorado1/DietMicrobeNet/wiki/5.-Inter%E2%80%90Sample-Comparison) all found in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
+* For **Snakemake Workflow** (RECOMMENDED) follow [step 2](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items), then run [Snakemake](https://github.com/acolorado1/DietMicrobeNet/wiki/Snakemake-Workflow-(Steps-3%E2%80%904)), then run [step 5](https://github.com/acolorado1/DietMicrobeNet/wiki/5.-Inter%E2%80%90Sample-Comparison) all found in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
 
 ## Outputs
 
 The main outputs of this program will be: 
 
-1. HTML report on what we know about the compounds originating from the **food** 
+1. HTML report on what we know about the compounds originating from the **food** (IF using specific FFQs, if all foods are used no report is created) 
 2. HTML report on what we know about the compounds originating from the **microbes** (IF taxonomic and abundance information is provided)
 3. HTML report on compounds and reactions involved in dietary metabolism 
 4. Figures describing distribution of node and edge weights (representing food frequency and read abundance respectively)

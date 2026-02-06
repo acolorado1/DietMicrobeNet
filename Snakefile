@@ -4,7 +4,7 @@ import os
 # Configuration
 # -----------------------------------
 DIRECTORIES = config["directories"].split(",")
-METABOLOME    = config.get("metabolome", False)
+FOODB    = config.get("foodb", False)
 GENOME        = config.get("genome", False)
 E_WEIGHTS     = config.get("e_weights", False)
 N_WEIGHTS     = config.get("n_weights", False)
@@ -14,7 +14,7 @@ ALL_FOOD      = config.get("all_food", False)
 
 print("Running with config:")
 print(f"  Directories:    {DIRECTORIES}")
-print(f"  Metabolome:     {METABOLOME}")
+print(f"  FooDB:          {FOODB}")
 print(f"  Genome:         {GENOME}")
 print(f"  E Weights:      {E_WEIGHTS}")
 print(f"  N Weights:      {N_WEIGHTS}")
@@ -28,13 +28,13 @@ print(f"  All Food:       {ALL_FOOD}")
 def select_meta_file(wildcards):
     """
     If ALL_FOOD == True, use precomputed metadata from Data/AllFood.
-    Otherwise use standard output_met/food_meta.csv and require the
-    CreateFoodMetadata_met rule to generate it.
+    Otherwise use standard output_fdb/food_meta.csv and require the
+    CreateFoodMetadata_fdb rule to generate it.
     """
     if ALL_FOOD:
         return f"Data/AllFood/food_meta.csv"
     else:
-        return f"{wildcards.dir}/output_met/food_meta.csv"
+        return f"{wildcards.dir}/output_fdb/food_meta.csv"
 
 
 # -----------------------------------
@@ -42,10 +42,10 @@ def select_meta_file(wildcards):
 # -----------------------------------
 rule all:
     input:
-        # Metabolome requirements 
-        (expand("{dir}/output_met/food_compound_report.html", dir=DIRECTORIES) if METABOLOME and not ALL_FOOD else []),
-        (expand("{dir}/output_met/microbe_compound_report.html", dir=DIRECTORIES) if METABOLOME and INCLUDE_ORGS and N_WEIGHTS else []),
-        (expand("{dir}/output_met/graph/graph_results_report.html", dir=DIRECTORIES) if METABOLOME else []),
+        # Foodb requirements 
+        (expand("{dir}/output_fdb/food_compound_report.html", dir=DIRECTORIES) if FOODB and not ALL_FOOD else []),
+        (expand("{dir}/output_fdb/microbe_compound_report.html", dir=DIRECTORIES) if FOODB and INCLUDE_ORGS and N_WEIGHTS else []),
+        (expand("{dir}/output_fdb/graph/graph_results_report.html", dir=DIRECTORIES) if FOODB else []),
 
         # Genome requirements
         (expand("{dir}/output_gen/food_compound_report.html", dir=DIRECTORIES) if GENOME else []),
@@ -54,60 +54,60 @@ rule all:
 
 
 # ---------------------------
-# Metabolome rules
+# FOODB rules
 # ---------------------------
-if METABOLOME:
+if FOODB:
 
-    rule all_met:
+    rule all_fdb:
         input: 
-            "{dir}/output_met/food_compound_report.html",
-            "{dir}/output_met/AMON_output/rn_dict.json",
-            "{dir}/output_met/graph/M_nodes_df.csv",
-            "{dir}/output_met/graph/M_edges_df.csv",
-            "{dir}/output_met/graph/M_AbundanceDistribution.png",
-            "{dir}/output_met/graph/M_FoodFrequencyDistribution.png", 
-            "{dir}/output_met/graph/network_summary.txt",
-            "{dir}/output_met/microbe_compound_report.html",
-            "{dir}/output_met/graph/graph_results.csv",
-            "{dir}/output_met/graph/graph_results_report.html"
+            "{dir}/output_fdb/food_compound_report.html",
+            "{dir}/output_fdb/AMON_output/rn_dict.json",
+            "{dir}/output_fdb/graph/M_nodes_df.csv",
+            "{dir}/output_fdb/graph/M_edges_df.csv",
+            "{dir}/output_fdb/graph/M_AbundanceDistribution.png",
+            "{dir}/output_fdb/graph/M_FoodFrequencyDistribution.png", 
+            "{dir}/output_fdb/graph/network_summary.txt",
+            "{dir}/output_fdb/microbe_compound_report.html" if INCLUDE_ORGS and N_WEIGHTS else [],
+            "{dir}/output_fdb/graph/graph_results.csv",
+            "{dir}/output_fdb/graph/graph_results_report.html"
 
-    rule CreateFoodMetadata_met:
+    rule CreateFoodMetadata_fdb:
         input: 
             f_file = "{dir}/foodb_foods_dataframe.csv"
         output: 
-            f_meta = "{dir}/output_met/food_meta.csv"
+            f_meta = "{dir}/output_fdb/food_meta.csv"
         conda: "DMnet_env.yaml"
         shell:
             """
-            Rscript src/Metabolome_proc/comp_FoodDB.R \
+            Rscript src/foodb_proc/comp_FoodDB.R \
                 --diet_file {input.f_file} \
                 --content Data/Content.csv \
                 --ExDes_file Data/CompoundExternalDescriptor.csv \
                 --meta_o_file {output.f_meta}
             """
     if not ALL_FOOD:
-        rule CreateCompoundReport_met:
+        rule CreateCompoundReport_fdb:
             input: 
                 f_meta = select_meta_file,
-                graphs = "{dir}/output_met/graph/M_nodes_df.csv" 
+                graphs = "{dir}/output_fdb/graph/M_nodes_df.csv" 
             output: 
-                report = "{dir}/output_met/food_compound_report.html"
+                report = "{dir}/output_fdb/food_compound_report.html"
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python {workflow.basedir}/src/Metabolome_proc/RenderCompoundAnalysis.py \
+                python {workflow.basedir}/src/foodb_proc/RenderCompoundAnalysis.py \
                     --food_file {input.f_meta} \
                     --output {output.report}
                 """
     
-    rule PrepareAMONOutput_met:
+    rule PrepareAMONOutput_fdb:
         input: 
             dir="{dir}"
         output:
-            touch("{dir}/output_met/AMON_output/.prepared")
+            touch("{dir}/output_fdb/AMON_output/.prepared")
         run:
             import os, shutil
-            outdir = os.path.join(input.dir, "output_met", "AMON_output")
+            outdir = os.path.join(input.dir, "output_fdb", "AMON_output")
             if os.path.exists(outdir):
                 shutil.rmtree(outdir)
             os.makedirs(outdir, exist_ok=True)
@@ -115,26 +115,26 @@ if METABOLOME:
             open(output[0], 'w').close()
 
 
-    rule RunAMON_met:
+    rule RunAMON_fdb:
         input: 
-            prep="{dir}/output_met/AMON_output/.prepared",
+            prep="{dir}/output_fdb/AMON_output/.prepared",
             kos = "{dir}/noquote_ko.txt"
         output: 
-            rn_json = "{dir}/output_met/AMON_output/rn_dict.json"
+            rn_json = "{dir}/output_fdb/AMON_output/rn_dict.json"
         conda: "DMnet_env.yaml"
         shell:
             """
-            rm -rf {wildcards.dir}/output_met/AMON_output
-            amon.py \
+            rm -rf {wildcards.dir}/output_fdb/AMON_output
+            amon \
                 -i {input.kos} \
-                -o {wildcards.dir}/output_met/AMON_output \
+                -o {wildcards.dir}/output_fdb/AMON_output \
                 --save_entries
             """
 
-    rule GraphCreation_met:
+    rule GraphCreation_fdb:
         input: 
             f_meta = select_meta_file,
-            rn_json = "{dir}/output_met/AMON_output/rn_dict.json",
+            rn_json = "{dir}/output_fdb/AMON_output/rn_dict.json",
             m_meta = "{dir}/ko_taxonomy_abundance.csv"
         params:
             flags = " ".join(filter(None, [
@@ -143,16 +143,16 @@ if METABOLOME:
                 "--org" if INCLUDE_ORGS else ""
             ])),
             abundance = ABUNDANCE_COL,
-            graph_dir = "{dir}/output_met/graph/"
+            graph_dir = "{dir}/output_fdb/graph"
         output:
-            nodes = "{dir}/output_met/graph/M_nodes_df.csv",
-            edges = "{dir}/output_met/graph/M_edges_df.csv",
-            summary = "{dir}/output_met/graph/network_summary.txt"
+            nodes = "{dir}/output_fdb/graph/M_nodes_df.csv",
+            edges = "{dir}/output_fdb/graph/M_edges_df.csv",
+            summary = "{dir}/output_fdb/graph/network_summary.txt"
         conda: "DMnet_env.yaml"
         shell:
             """
             mkdir -p {params.graph_dir}
-            python src/Metabolome_proc/main_metab.py \
+            python src/foodb_proc/main_metab.py \
                 --f {input.f_meta} \
                 --r {input.rn_json} \
                 --m_meta {input.m_meta} \
@@ -162,12 +162,12 @@ if METABOLOME:
             """
 
     if INCLUDE_ORGS and N_WEIGHTS: 
-        rule MicrobeCompoundReport_met:
+        rule MicrobeCompoundReport_fdb:
             input:
-                nodes = "{dir}/output_met/graph/M_nodes_df.csv",
-                edges = "{dir}/output_met/graph/M_edges_df.csv"
+                nodes = "{dir}/output_fdb/graph/M_nodes_df.csv",
+                edges = "{dir}/output_fdb/graph/M_edges_df.csv"
             output:
-                report = "{dir}/output_met/microbe_compound_report.html"
+                report = "{dir}/output_fdb/microbe_compound_report.html"
             conda: "DMnet_env.yaml"
             shell:
                 """
@@ -177,12 +177,12 @@ if METABOLOME:
                     --output {output.report}
                 """
     
-    rule RunGraph_met: 
+    rule RunGraph_fdb: 
         input: 
-            nodes = "{dir}/output_met/graph/M_nodes_df.csv",
-            edges = "{dir}/output_met/graph/M_edges_df.csv"
+            nodes = "{dir}/output_fdb/graph/M_nodes_df.csv",
+            edges = "{dir}/output_fdb/graph/M_edges_df.csv"
         output: 
-            output = "{dir}/output_met/graph/graph_results.csv"
+            output = "{dir}/output_fdb/graph/graph_results.csv"
         conda: "DMnet_env.yaml"
         shell:
             """
@@ -192,12 +192,12 @@ if METABOLOME:
                 --o {output.output}
             """
         
-    rule PatternReport_met: 
+    rule PatternReport_fdb: 
         input: 
-            graph_res = "{dir}/output_met/graph/graph_results.csv",
-            rxn_json = "{dir}/output_met/AMON_output/rn_dict.json"
+            graph_res = "{dir}/output_fdb/graph/graph_results.csv",
+            rxn_json = "{dir}/output_fdb/AMON_output/rn_dict.json"
         output: 
-            output = "{dir}/output_met/graph/graph_results_report.html"
+            output = "{dir}/output_fdb/graph/graph_results_report.html"
         conda: "DMnet_env.yaml"
         shell: 
             """
@@ -224,7 +224,7 @@ if GENOME:
             "{dir}/output_gen/graph/WG_FoodFrequencyDistribution.png", 
             "{dir}/output_gen/food_compound_report.html",
             "{dir}/output_gen/graph/network_summary.txt",
-            "{dir}/output_gen/microbe_compound_report.html",
+            "{dir}/output_gen/microbe_compound_report.html" if INCLUDE_ORGS and N_WEIGHTS else [],
             "{dir}/output_gen/graph/graph_results.csv", 
             "{dir}/output_gen/graph/graph_results_report.html"
 
@@ -232,7 +232,7 @@ if GENOME:
         input: 
             kegg_orgs = "{dir}/kegg_organisms_dataframe.csv"
         params: 
-            kos_dir = "{dir}/output_gen/org_KO/"
+            kos_dir = "{dir}/output_gen/org_KO"
         output: 
             food_meta = "{dir}/output_gen/food_item_kos.csv",
             joined = "{dir}/output_gen/org_KO/joined.txt"
@@ -272,7 +272,7 @@ if GENOME:
         shell:
             """
             rm -rf {wildcards.dir}/output_gen/AMON_output
-            amon.py \
+            amon \
                 -i {input.microbe_kos} \
                 -o {wildcards.dir}/output_gen/AMON_output \
                 --other_gene_set {input.diet_kos} \
@@ -292,7 +292,7 @@ if GENOME:
                 "--org" if INCLUDE_ORGS else ""
             ])),
             abundance = ABUNDANCE_COL,
-            graph_dir = "{dir}/output_gen/graph/"
+            graph_dir = "{dir}/output_gen/graph"
         output:
             nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
             edges = "{dir}/output_gen/graph/WG_edges_df.csv",
