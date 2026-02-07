@@ -8,8 +8,8 @@ Every user will need to set up and install this program the same way. To do this
 
 After getting set up, you will have decide if you want to run each step manually or use the provided Snakemake Workflow. 
 
-* For **manual approach** follow steps 2-5 in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
-* For **Snakemake Workflow** (RECOMMENDED) follow [step 2](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items), then run [Snakemake](https://github.com/acolorado1/DietMicrobeNet/wiki/Snakemake-Workflow-(Steps-3%E2%80%904)), then run [step 5](https://github.com/acolorado1/DietMicrobeNet/wiki/5.-Inter%E2%80%90Sample-Comparison) all found in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
+* For **manual approach** follow steps 2-6 in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
+* For **Snakemake Workflow** (RECOMMENDED) follow [step 2](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items), then run [Snakemake](https://github.com/acolorado1/DietMicrobeNet/wiki/Snakemake-Workflow-(Steps-3%E2%80%904)), then run [step 5](https://github.com/acolorado1/DietMicrobeNet/wiki/5.-Inter%E2%80%90Sample-Comparison) for graph comparison, and then run [step 6](https://github.com/acolorado1/DietMicrobeNet/wiki/Metabolome-Comparison) for metabolome comparison. All steps are found in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki)
 
 ## Outputs
 
@@ -25,6 +25,10 @@ If you run the graph comparison script you will generate:
 
 1. Three summary files on the results of three different patterns that were searched for in the graph 
 2. Two figures for each pattern (6 total) describing clustered similarity of graphs 
+
+If you include a metabolome: 
+
+1. HTML report on which compounds found in the patterns were also found in a metabolomics experiment that you have provided. 
 
 ## Contact
 

@@ -1,0 +1,177 @@
+---
+title: "Metabolome Comparison Report"
+date: "`r Sys.Date()`"
+params:
+  patterns: "default.csv"
+  metabolome: "metab_default.csv"
+---
+
+```{css, echo=FALSE}
+h1, h2, h3, h4 {
+  text-align: center;
+}
+```
+
+```{r, setup, echo = F}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = T, echo = F, 
+                      fig.align = "center")
+options(scipen = 999)
+```
+
+```{r, read packages}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+```{r, get data}
+# get data 
+hmdb <- read_csv("../Data/hmdb.csv")
+colnames(hmdb)[1] <- "compound"
+hmdb_subset <- hmdb %>% select(compound, taxonomy_super_class, taxonomy_class)
+patterns <- read_csv(params$patterns)
+metabolome <- read_csv(params$metabolome)
+```
+
+## Pattern Query 1 Results: Food to Microbe
+
+Identifying compounds found in Food to Microbe patterns that were also found in the metabolome. 
+
+## {.tabset} 
+
+### Compound Taxonomy Summary
+
+```{r, pattern1 summary}
+# get only food to microbe patterns 
+patterns1 <- patterns %>% 
+  filter(compound1_origin == "food" & compound2_origin == "microbe")
+
+# get list of compounds and their origin & add taxonomy information
+comp1 <- patterns1 %>% select(compound1_id, compound1_origin) %>%  rename("compound" = compound1_id, "origin" = compound1_origin)
+comp2 <- patterns1 %>% select(compound2_id, compound2_origin) %>%  rename("compound" = compound2_id, "origin" = compound2_origin)
+comp_orig <- rbind(comp1, comp2)
+comp_orig <- comp_orig %>% 
+  filter(compound %in% metabolome$compound) %>% 
+  left_join(hmdb_subset, by = "compound") 
+
+# plot compound taxonomy and color by origin 
+comp_orig %>% 
+  count(origin, taxonomy_super_class) %>% 
+  ggplot(aes(y=taxonomy_super_class, x=origin)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    xlab("Origin") + 
+    ylab("Taxonomy Super Class")
+
+comp_orig %>% 
+  count(origin, taxonomy_class) %>% 
+  ggplot(aes(y=taxonomy_class, x=origin)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    xlab("Origin") + 
+    ylab("Taxonomy Class")
+```
+
+### List of Shared Compounds 
+
+```{r, pattern1 list}
+print(comp_orig %>% select(compound, origin), n = nrow(comp_orig))
+```
+
+## Pattern Query 2 Results: Food to Both
+
+Identifying compounds found in Food to Both patterns that were also found in the metabolome. 
+
+## {.tabset} 
+
+### Compound Taxonomy Summary
+
+```{r, pattern2 summary}
+# get only food to microbe patterns 
+patterns2 <- patterns %>% 
+  filter(compound1_origin == "food" & compound2_origin == "both")
+
+# get list of compounds and their origin & add taxonomy information
+comp1 <- patterns2 %>% select(compound1_id, compound1_origin) %>%  rename("compound" = compound1_id, "origin" = compound1_origin)
+comp2 <- patterns2 %>% select(compound2_id, compound2_origin) %>%  rename("compound" = compound2_id, "origin" = compound2_origin)
+comp_orig <- rbind(comp1, comp2)
+comp_orig <- comp_orig %>% 
+  filter(compound %in% metabolome$compound) %>% 
+  left_join(hmdb_subset, by = "compound") 
+
+# plot compound taxonomy and color by origin 
+comp_orig %>% 
+  count(origin, taxonomy_super_class) %>% 
+  ggplot(aes(y=taxonomy_super_class, x=origin)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    xlab("Origin") + 
+    ylab("Taxonomy Super Class")
+
+comp_orig %>% 
+  count(origin, taxonomy_class) %>% 
+  ggplot(aes(y=taxonomy_class, x=origin)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    xlab("Origin") + 
+    ylab("Taxonomy Class")
+```
+
+### List of Shared Compounds 
+
+```{r, pattern2 list}
+print(comp_orig %>% select(compound, origin), n = nrow(comp_orig))
+```
+
+## Pattern Query 3 Results: Both to Both
+
+Identifying compounds found in Both to Both patterns that were also found in the metabolome. 
+
+## {.tabset} 
+
+### Compound Taxonomy Summary
+
+```{r, pattern3 summary}
+# get only food to microbe patterns 
+patterns3 <- patterns %>% 
+  filter(compound1_origin == "both" & compound2_origin == "both")
+
+# get list of compounds and their origin & add taxonomy information
+comp1 <- patterns3 %>% select(compound1_id, compound1_origin) %>%  rename("compound" = compound1_id, "origin" = compound1_origin)
+comp2 <- patterns3 %>% select(compound2_id, compound2_origin) %>%  rename("compound" = compound2_id, "origin" = compound2_origin)
+comp_orig <- rbind(comp1, comp2)
+comp_orig <- comp_orig %>% 
+  filter(compound %in% metabolome$compound) %>% 
+  left_join(hmdb_subset, by = "compound") 
+
+# plot compound taxonomy and color by origin 
+comp_orig %>% 
+  count(origin, taxonomy_super_class) %>% 
+  ggplot(aes(y=taxonomy_super_class, x=origin)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    xlab("Origin") + 
+    ylab("Taxonomy Super Class")
+
+comp_orig %>% 
+  count(origin, taxonomy_class) %>% 
+  ggplot(aes(y=taxonomy_class, x=origin)) +
+    geom_point(aes(color = n), size = 1) + 
+    scale_color_gradient(low = "lightgrey", high = "purple4") +
+    theme_bw() + 
+    xlab("Origin") + 
+    ylab("Taxonomy Class")
+```
+
+### List of Shared Compounds 
+
+```{r, pattern3 list}
+print(comp_orig %>% select(compound, origin) %>% distinct(), n = nrow(comp_orig))
+```
+
