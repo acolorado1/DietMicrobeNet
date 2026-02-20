@@ -79,7 +79,7 @@ if FOODB:
         conda: "DMnet_env.yaml"
         shell:
             """
-            Rscript src/foodb_proc/comp_FoodDB.R \
+            Rscript src/Metabolome_proc/comp_FoodDB.R \
                 --diet_file {input.f_file} \
                 --content Data/Content.csv \
                 --ExDes_file Data/CompoundExternalDescriptor.csv \
@@ -95,7 +95,7 @@ if FOODB:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python {workflow.basedir}/src/foodb_proc/RenderCompoundAnalysis.py \
+                python {workflow.basedir}/src/Metabolome_proc/RenderCompoundAnalysis.py \
                     --food_file {input.f_meta} \
                     --output {output.report}
                 """
@@ -143,7 +143,7 @@ if FOODB:
                 "--org" if INCLUDE_ORGS else ""
             ])),
             abundance = ABUNDANCE_COL,
-            graph_dir = "{dir}/output_fdb/graph"
+            graph_dir = "{dir}/output_fdb/graph/"
         output:
             nodes = "{dir}/output_fdb/graph/M_nodes_df.csv",
             edges = "{dir}/output_fdb/graph/M_edges_df.csv",
@@ -152,7 +152,7 @@ if FOODB:
         shell:
             """
             mkdir -p {params.graph_dir}
-            python src/foodb_proc/main_metab.py \
+            python src/Metabolome_proc/main_metab.py \
                 --f {input.f_meta} \
                 --r {input.rn_json} \
                 --m_meta {input.m_meta} \
