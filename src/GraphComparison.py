@@ -12,6 +12,7 @@ from scipy.cluster.hierarchy import linkage, dendrogram, leaves_list
 from scipy.spatial.distance import squareform
 from skbio import DistanceMatrix
 from skbio.stats.distance import permanova
+from statsmodels.stats.multitest import multipletests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -177,36 +178,112 @@ def cluster_matrix(matrix: np.ndarray, labels: List[str]) -> Tuple[np.ndarray, L
     return clustered_matrix, clustered_labels, Z
 
 
-def stat_test(pattern_dict: Dict[str, List[str]], metadata: pd.DataFrame, group_col: str, permutations: int = 5000, seed: int = 5):
+def stat_test(pattern_dict: Dict[str, List[str]],
+              metadata: pd.DataFrame,
+              group_col: str,
+              permutations: int = 5000,
+              seed: int = 5):
+
     """
     Run PERMANOVA on the Jaccard distance matrix for the given pattern.
 
-    - pattern_dict: dictionary of sample_name -> list of KOs
-    - metadata: metadata dataframe with sample names as index
-    - group_col: column in metadata to use as grouping
+    Automatically:
+    - Removes groups with < 2 samples
+    - Skips test if fewer than 2 valid groups remain
     """
+
     matrix, labels = calculate_similarity_matrix(pattern_dict)
 
     if len(labels) < 2:
-        raise ValueError(f"Need at least 2 samples to run PERMANOVA for {group_col}.")
+        raise ValueError("Need at least 2 samples to run PERMANOVA.")
 
-    # Subset metadata to match the labels
-    try:
-        group_series = metadata.loc[labels, group_col]
-    except KeyError as e:
-        missing = set(labels) - set(metadata.index)
-        raise KeyError(f"Some samples missing in metadata for PERMANOVA: {missing}") from e
+    # ---- Validate grouping column ----
+    if group_col not in metadata.columns:
+        raise KeyError(
+            f"Grouping column '{group_col}' not found in metadata. "
+            f"Available columns: {list(metadata.columns)}"
+        )
 
-    # Check each group has at least 2 samples
+    # ---- Validate samples ----
+    missing_samples = set(labels) - set(metadata.index)
+    if missing_samples:
+        raise KeyError(
+            f"Some samples missing in metadata for PERMANOVA: {missing_samples}"
+        )
+
+    group_series = metadata.loc[labels, group_col]
+
+    # ---- Automatic group size detection ----
     counts = group_series.value_counts()
-    if (counts < 2).any():
-        raise ValueError(f"Each group must have at least 2 samples. Group sizes:\n{counts.to_dict()}")
+    small_groups = counts[counts < 2]
 
-    # Distance matrix
+    if not small_groups.empty:
+        logging.warning(
+            f"Dropping groups with <2 samples in '{group_col}': "
+            f"{small_groups.to_dict()}"
+        )
+
+        valid_groups = counts[counts >= 2].index
+        group_series = group_series[group_series.isin(valid_groups)]
+
+        # subset matrix to remaining samples
+        valid_labels = group_series.index.tolist()
+        idx = [labels.index(lab) for lab in valid_labels]
+        matrix = matrix[np.ix_(idx, idx)]
+        labels = valid_labels
+
+    # ---- Check if enough groups remain ----
+    remaining_counts = group_series.value_counts()
+
+    if len(remaining_counts) < 2:
+        raise ValueError(
+            f"After filtering small groups, fewer than 2 groups remain "
+            f"in '{group_col}'. Cannot run PERMANOVA.\n"
+            f"Remaining groups: {remaining_counts.to_dict()}"
+        )
+
     dm = DistanceMatrix(1.0 - matrix, labels)
-    return permanova(distance_matrix=dm, grouping=group_series, permutations=permutations, seed=seed)
 
+    res = permanova(
+        distance_matrix=dm,
+        grouping=group_series,
+        permutations=permutations,
+        seed=seed
+    )
 
+    # Extract values 
+    pseudo_f = res.get("test statistic", np.nan)
+    p_value = res.get("p-value", np.nan)
+
+    # Compute R² manually
+    # F = pseudo-F
+    # k = number of groups
+    # N = number of samples
+    pseudo_f = res["test statistic"]
+    n = len(group_series)
+    k = group_series.nunique()
+    r2 = (pseudo_f * (k - 1)) / (pseudo_f * (k - 1) + (n - k))
+
+    return {
+        "pseudo_F": pseudo_f,
+        "p_value": p_value,
+        "R2": r2,
+        "groups": group_series.value_counts().to_dict(),
+        "n_samples": len(group_series)
+    }
+
+def fdr_correction(pvalues: List[float]):
+    """Benjamini-Hochberg FDR correction."""
+    if len(pvalues) == 0:
+        return []
+
+    _, corrected, _, _ = multipletests(
+        pvalues,
+        alpha=0.05,
+        method="fdr_bh"
+    )
+
+    return corrected
 
 def plotting(pattern_dict: Dict[str, List[str]], pattern_name: str, output: str):
     """Create and save heatmap and dendrogram for the given pattern."""
@@ -274,23 +351,56 @@ def summary(pattern_dict: Dict[str, List[str]], pattern_name: str, stat: bool, m
     summary_file = output_dir / f"{pattern_name.replace(' ', '')}_GraphComparisons_Summary.txt"
     with open(summary_file, "w") as fh:
         fh.write(f"##### SUMMARY FOR PATTERN: {pattern_name} #####\n")
-        fh.write(f"Number of compounds shared: {len(intersection_set)}\n")
+        fh.write(f"Number of KOs shared: {len(intersection_set)}\n")
 
         if stat:
-            for group in groups: 
+            permanova_results = []
+            permanova_groups = []
+
+            for group in groups:
                 try:
-                    stat_results = stat_test(pattern_dict=pattern_dict, metadata=metadata, group_col=group)
-                    fh.write(f"\n##### PERMANOVA RESULTS FOR {group} ######\n")
-                    fh.write(str(stat_results) + "\n")
-                    fh.write("\n")
+                    stat_results = stat_test(
+                        pattern_dict=pattern_dict,
+                        metadata=metadata,
+                        group_col=group
+                    )
+
+                    permanova_results.append(stat_results)
+                    permanova_groups.append(group)
+
                 except Exception as e:
-                    fh.write(f"\n##### PERMANOVA FAILED FOR {group} ######\n")
-                    fh.write(f"Reason: {repr(e)}\n")
-                    logging.warning(f"PERMANOVA failed for pattern '{pattern_name}': {e}")
+                    logging.warning(f"PERMANOVA failed for pattern '{pattern_name}', group '{group}': {e}")
+
+            # ---- Write Raw Results ----
+            fh.write("\n##### PERMANOVA RESULTS #####\n")
+
+            raw_pvalues = []
+
+            for group, res in zip(permanova_groups, permanova_results):
+                fh.write(f"\n--- Group: {group} ---\n")
+                fh.write(f"Samples used: {res['n_samples']}\n")
+                fh.write(f"Group sizes: {res['groups']}\n")
+                fh.write(f"Pseudo-F: {res['pseudo_F']:.4f}\n")
+                fh.write(f"R²: {res['R2']:.4f}\n")
+                fh.write(f"P-value (raw): {res['p_value']:.6f}\n")
+
+                raw_pvalues.append(res["p_value"])
+
+            # ---- FDR Correction ----
+            if len(raw_pvalues) > 0:
+                corrected_pvalues = fdr_correction(raw_pvalues)
+
+                fh.write("\n##### FDR CORRECTED P-VALUES #####\n")
+
+                for group, raw_p, adj_p in zip(permanova_groups, raw_pvalues, corrected_pvalues):
+                    fh.write(
+                        f"{group}: raw p = {raw_p:.6f}, "
+                        f"FDR-adjusted p = {adj_p:.6f}\n"
+                    )
         
-        fh.write("\n##### UNIQUE COMPOUNDS #####\n")
+        fh.write("\n##### UNIQUE KOs #####\n")
         for name, unique_list in unique_dict.items():
-            fh.write(f"Unique compounds to {name}: {len(unique_list)}\n")
+            fh.write(f"Unique KOs to {name}: {len(unique_list)}\n")
 
         fh.write("\n\n\n ###### LISTS OF KOs ######\n\n\n")
         fh.write(f"Intersection KOs: {sorted(intersection_set)}\n\n")
@@ -326,7 +436,7 @@ def main():
     patterns = [food_microbe_kos, food_both_kos, both_both_kos]
     pattern_names = ["Food to Microbe", "Food to Both", "Both to Both"]
 
-    groups = args.groups.split(',')
+    groups = [g.strip() for g in args.groups.split(',') if g.strip()]
     for pat_dict, pat_name in zip(patterns, pattern_names):
         plotting(pat_dict, pat_name, args.output)
         summary(pattern_dict=pat_dict, pattern_name=pat_name, stat=args.stat_test, metadata=md, groups=groups, output=args.output)
