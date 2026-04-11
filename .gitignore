@@ -1,0 +1,32 @@
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Snakemake
+.snakemake/
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# IDE
+.vscode/
+
+# Results / outputs
+results/
+logs/
+
+# Large Data
+Data/CompoundExternalDescriptor.csv
+Data/Content.csv
+Data/Food.csv
+Data/hmdb.csv
+Data/hmdb_metabolites.xml
+Data/AllFood/food_meta.csv
