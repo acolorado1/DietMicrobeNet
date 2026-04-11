@@ -12,8 +12,10 @@ __pycache__/
 
 # R
 *.Rproj
+.Rproj.user
 .Rhistory
 .RData
+.Ruserdata
 .Ruserdata
 
 # IDE
