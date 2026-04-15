@@ -1,6 +1,6 @@
 site_name: DietMicrobeNet
 site_description: Creating metabolic networks to find what dietary originating compounds microbes are capable of metabolizing
-site_url: https://github.com/acolorado1/DietMicrobeNet
+site_url: https://acolorado1.github.io/DietMicrobeNet/
 
 theme:
   name: material
