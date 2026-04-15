@@ -3,14 +3,17 @@ import os
 # -----------------------------------
 # Configuration
 # -----------------------------------
-DIRECTORIES = config["directories"].split(",")
-FOODB    = config.get("foodb", False)
+DIRECTORIES   = [d.strip().rstrip("/") for d in config["directories"].split(",")]
+FOODB         = config.get("foodb", False)
 GENOME        = config.get("genome", False)
 E_WEIGHTS     = config.get("e_weights", False)
 N_WEIGHTS     = config.get("n_weights", False)
 INCLUDE_ORGS  = config.get("include_orgs", False)
 ABUNDANCE_COL = config.get("abundance_col", " ") 
 ALL_FOOD      = config.get("all_food", False)
+
+with open("VERSION") as f:
+    PIPELINE_VERSION = f.read().strip()
 
 print("Running with config:")
 print(f"  Directories:    {DIRECTORIES}")
@@ -42,16 +45,34 @@ def select_meta_file(wildcards):
 # -----------------------------------
 rule all:
     input:
-        # Foodb requirements 
-        (expand("{dir}/output_fdb/food_compound_report.html", dir=DIRECTORIES) if FOODB and not ALL_FOOD else []),
-        (expand("{dir}/output_fdb/microbe_compound_report.html", dir=DIRECTORIES) if FOODB and INCLUDE_ORGS and N_WEIGHTS else []),
-        (expand("{dir}/output_fdb/graph/graph_results_report.html", dir=DIRECTORIES) if FOODB else []),
+        # run info
+        [f"{d}/run_info.txt" for d in DIRECTORIES],
 
-        # Genome requirements
-        (expand("{dir}/output_gen/food_compound_report.html", dir=DIRECTORIES) if GENOME else []),
-        (expand("{dir}/output_gen/microbe_compound_report.html", dir=DIRECTORIES) if GENOME and INCLUDE_ORGS and N_WEIGHTS else []),
-        (expand("{dir}/output_gen/graph/graph_results_report.html", dir=DIRECTORIES) if GENOME else [])
+        # FooDB outputs
+        *([f"{d}/output_fdb/food_compound_report.html" for d in DIRECTORIES]
+          if FOODB and not ALL_FOOD else []),
+        *([f"{d}/output_fdb/microbe_compound_report.html" for d in DIRECTORIES]
+          if FOODB and INCLUDE_ORGS and N_WEIGHTS else []),
+        *([f"{d}/output_fdb/graph/graph_results_report.html" for d in DIRECTORIES]
+          if FOODB else []),
 
+        # Genome outputs
+        *([f"{d}/output_gen/food_compound_report.html" for d in DIRECTORIES]
+          if GENOME else []),
+        *([f"{d}/output_gen/microbe_compound_report.html" for d in DIRECTORIES]
+          if GENOME and INCLUDE_ORGS and N_WEIGHTS else []),
+        *([f"{d}/output_gen/graph/graph_results_report.html" for d in DIRECTORIES]
+          if GENOME else [])
+
+# ---------------------------
+# Run metadata generation
+# ---------------------------
+rule write_run_info:
+    output:
+        "{dir}/run_info.txt"
+    run:
+        from src.SupplementalFunctions.run_info import write_run_info
+        write_run_info(PIPELINE_VERSION, config, output[0])
 
 # ---------------------------
 # FOODB rules
