@@ -3,11 +3,16 @@ site_description: Creating metabolic networks to find what dietary originating c
 site_url: https://github.com/acolorado1/DietMicrobeNet
 
 theme:
-  name: readthedocs
+  name: material
   features:
     - navigation.tabs
     - navigation.sections
+    - navigation.top
     - toc.integrate
+
+extra:
+  version:
+    provider: mike
 
 nav:
   - Home: index.md
