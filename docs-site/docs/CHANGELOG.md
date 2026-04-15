@@ -1,5 +1,10 @@
 # Changelog 
 
+## v1.0.9
+
+- Added version tracking to documentation 
+  
+
 ## v1.0.0
 
 - Initial release of DietMicrobeNet 

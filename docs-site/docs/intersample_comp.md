@@ -29,9 +29,11 @@ options:
                         Name of KOs column in graph CSVs (default: 'KOs')
 ```
 
-NOTE 1: all `graph_results.csv` should be formatted the same unless there has been a change done by the user. Thus all the ko_columns column should use the default column name unless they have been changed.
+!!! tip
+  All `graph_results.csv` should be formatted the same unless there has been a change done by the user. Thus all the ko_columns column should use the default column name unless they have been changed.
 
-NOTE 2: example metadata can be located in the `Data` file called **Example_GraphComparison_Metadata.csv**
+!!! note 
+  Example metadata can be located in the `Data` file called **Example_GraphComparison_Metadata.csv**
 
 Example usage w/o stats: 
 

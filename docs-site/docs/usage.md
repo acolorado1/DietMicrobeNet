@@ -1,183 +1,228 @@
 # Running the Pipeline
 
-This pipeline converts dietary data (e.g., FFQs) and microbial gene information into a graph structure that can be analyzed for metabolic interactions between food and microbes.
+This pipeline converts dietary data (e.g., FFQs) and microbial gene information into a
+graph structure for analyzing metabolic interactions between food and gut microbes.
 
 ---
 
-## Creating a Machine-Readable FFQ
+## Overview
 
-###  From FFQs to Machine-Readable Data
+```mermaid
+graph LR
+  A[FFQ / Food List] --> B[Compound Source]
+  B --> C1[FooDB Workflow]
+  B --> C2[Whole Genome Workflow]
+  C1 --> D[Graph Data]
+  C2 --> D
+  D --> E[Pattern Extraction]
+  E --> F[Visualization]
+```
 
-Food Frequency Questionnaires (FFQs) are a common method for assessing dietary intake. These surveys capture how often and how much participants consume specific foods. However, FFQs are not directly usable in computational workflows due to several challenges:
+| Step | Description | Required |
+|------|-------------|----------|
+| 1 | Launch Streamlit app to create machine-readable FFQ | Optional |
+| 2 | Choose compound source (FooDB or KEGG) | ✅ |
+| 3A/3B | Generate nodes and edges | ✅ |
+| 4 | Microbial compound report | Optional |
+| 5 | Build graph and extract patterns | ✅ |
+| 6 | Visualize results | Optional |
 
-- **Heterogeneity**: Formats vary widely (e.g., 24-hour vs. 6-month recall, portion sizes vs. frequency scales)
-- **Lack of molecular resolution**: Foods must be represented at the compound level (i.e., chemical composition at consumption)
-- **Inconsistent structure**: Data must be standardized for downstream processing
+---
 
-To address this, a Streamlit web application was developed to generate standardized, machine-readable FFQ-like datasets. These datasets map food items to compounds using either **FooDB** or **KEGG**.
+## Step 1 — Create a Machine-Readable FFQ
 
-### No FFQ Available
+Food Frequency Questionnaires (FFQs) capture how often participants consume specific foods,
+but they aren't directly usable in computational workflows due to format heterogeneity,
+lack of molecular resolution, and inconsistent structure.
 
-You can run the pipeline without an FFQ by using all foods available in FooDB:
+A Streamlit app is provided to generate standardized, machine-readable FFQ datasets that
+map food items to compounds via **FooDB** or **KEGG**.
 
-- **Manual execution**: Skip food metadata creation in Step 3A (*Get all associated compounds*)
-- **Workflow execution**: Use flags `foodb` and `all-foods`
-- **Note**: Food compound reports are skipped due to dataset size
+```bash
+streamlit run src/get_foods.py
+```
 
-## Step 1: Launch the Streamlit application
-
-In terminal `streamlit run src/get_foods.py`
-
-Workflow:
+In the app:
 1. Search for and select foods
 2. Assign a consumption frequency (1–100%)
 3. Download the generated dataset
 4. Shut down the application
 
+!!! tip "No FFQ? No problem."
+    You can run the pipeline using all foods available in FooDB. Skip food metadata
+    creation in Step 3A, or pass the `foodb` and `all-foods` flags in the workflow runner.
+    Food compound reports are skipped due to dataset size.
 
-## Step 2: Choose a Compound Source
+---
 
-### Option A: FooDB (Experimental Data)
+## Step 2 — Choose a Compound Source
 
-FooDB is a database of compounds identified in foods via LC-MS experiments. Many compounds are linked to external resources such as KEGG.
+### Option A: FooDB (Experimental)
 
-Not all compounds in FooDB map to KEGG. Typically, core metabolic compounds (e.g., amino acids, sugars, fatty acids, nucleotides) are included, while specialized plant compounds (e.g., flavonoids, alkaloids, terpenes) may not be fully represented.
+FooDB contains compounds identified in foods via LC-MS experiments, many of which link
+to KEGG. Core metabolic compounds (amino acids, sugars, fatty acids, nucleotides) are
+well-represented, but specialized plant compounds (flavonoids, alkaloids, terpenes) may
+be missing.
 
-Limitations:
-- Incomplete compound coverage
-- Limited food representation
-- Based on foods commonly found in the U.S.
+**Limitations:** Incomplete compound coverage · Limited food representation · U.S.-centric food data
 
-### Option B: KEGG Organisms (Genome-Based Prediction)
+### Option B: KEGG Whole Genomes (Genome-Based Prediction)
 
-Compounds can be inferred from an organism’s genome (e.g., apple) based on its metabolic capabilities using KEGG organism data.
+Compounds are inferred from an organism's genome based on its metabolic capabilities
+using KEGG organism data.
 
-Limitations:
-- Requires decomposition of complex foods into individual components
-- Does not account for processing conditions (e.g., ripeness, cooking)
-- Predictions may not reflect actual composition
+**Limitations:** Requires decomposing complex foods into components · Doesn't account for
+ripeness or cooking · Predictions may not reflect actual composition
 
-## Step 3: Creating the Graph 
+---
 
-Given your 3 main inputs (list of KOs, KO metadata, and machine readable FFQ) you can choose to find compounds associated with your food items through metabolomics database [FooDB](https://foodb.ca/) or by predicting compounds from whole genomes using [KEGG organisms](https://www.genome.jp/kegg/tables/br08606.html). 
+## Step 3A — FooDB Workflow
 
-Ultimately this will be to create node and edge files that can be used to create graphs in memory.
+![Graph Creation Methods](img/graph_creation_workflow.png)
 
-![Graph Creation Methods](img/graph_creation_workflow.png) 
-
-!!! note 
-    [AMON](https://github.com/lozuponelab/AMON) is a tool which takes a list or two of KOs and finds compounds that can be created by them using KEGG reactions and assigns their origin.
-
-## Step 3A: FooDB Workflow
+!!! note
+    [AMON](https://github.com/lozuponelab/AMON) takes a list of KOs and finds producible
+    compounds via KEGG reactions, assigning their origin (dietary vs. microbial).
 
 ### 1. Generate Food–Compound Metadata
 
-Skip if using all FooDB foods (Data/AllFood/food_meta.csv available)
+> Skip this step if using all FooDB foods — `Data/AllFood/food_meta.csv` is pre-built.
 
+```bash
 Rscript src/Metabolome_proc/comp_FoodDB.R \
---diet_file "Data/test_sample/foodb_foods_dataframe.csv" \
---content_file "Data/Content.csv" \
---ExDes_file "Data/CompoundExternalDescriptor.csv" \
---meta_o_file "food_meta.csv"
+  --diet_file  "Data/test_sample/foodb_foods_dataframe.csv" \
+  --content_file "Data/Content.csv" \
+  --ExDes_file "Data/CompoundExternalDescriptor.csv" \
+  --meta_o_file "food_meta.csv"
+```
 
-Output: Food items mapped to KEGG compound IDs with aggregated consumption frequencies.
+**Output:** Food items mapped to KEGG compound IDs with aggregated consumption frequencies.
 
+### 2. Generate Food Compound Report *(optional)*
 
+> Skip if using all foods — the dataset is too large.
 
-### 2. (Optional) Generate Food Compound Report
-
-Skip if using all foods (file too large)
-
+```bash
 python src/Metabolome_proc/RenderCompoundAnalysis.py \
---food_file "food_meta.csv" \
---output "food_compound_report.html"
+  --food_file "food_meta.csv" \
+  --output "food_compound_report.html"
+```
 
-### 3. Run AMON (Microbial KOs)
+### 3. Run AMON
 
+```bash
 amon.py \
--i "Data/test_sample/noquote_ko.txt" \
--o "AMON_output/" \
---save_entries
+  -i "Data/test_sample/noquote_ko.txt" \
+  -o "AMON_output/" \
+  --save_entries
+```
 
-### 4. Create Graph Data (Nodes and Edges)
+### 4. Create Graph Data
 
+```bash
 python src/Metabolome_proc/main_metab.py \
---f "food_meta.csv" \
---r "AMON_output/rn_dict.json" \
---m_meta "Data/test_sample/ko_taxonomy_abundance.csv" \
---e-weights \
---n-weights \
---org \
---a "Abundance_RPKs" \
---o "graph/"
+  --f "food_meta.csv" \
+  --r "AMON_output/rn_dict.json" \
+  --m_meta "Data/test_sample/ko_taxonomy_abundance.csv" \
+  --e-weights \
+  --n-weights \
+  --org \
+  --a "Abundance_RPKs" \
+  --o "graph/"
+```
 
-## Step 3B: Whole Genome Workflow
+---
+
+## Step 3B — Whole Genome Workflow
 
 ### 1. Map Organisms to KOs
 
+```bash
 python src/WholeGenome_proc/comp_KEGG.py \
--i "Data/test_sample/kegg_organisms_dataframe.csv" \
--k "org_KO/" \
--o "food_item_kos.csv"
+  -i "Data/test_sample/kegg_organisms_dataframe.csv" \
+  -k "org_KO/" \
+  -o "food_item_kos.csv"
+```
 
-### 2. Run AMON (Microbial + Food KOs)
+### 2. Run AMON
 
+```bash
 amon.py \
--i "Data/test_sample/noquote_ag_sample.txt" \
--o "AMON_output/" \
---other_gene_set "org_KO/joined.txt" \
---save_entries
+  -i "Data/test_sample/noquote_ag_sample.txt" \
+  -o "AMON_output/" \
+  --other_gene_set "org_KO/joined.txt" \
+  --save_entries
+```
 
-### 3. Create Graph Data (Nodes and Edges)
+### 3. Create Graph Data
 
+```bash
 python src/WholeGenome_proc/main_geno.py \
---f_meta "food_item_kos.csv" \
---m_meta "Data/test_sample/ko_taxonomy_abundance.csv" \
---mapper "AMON_output/kegg_mapper.tsv" \
---rn_json "AMON_output/rn_dict.json" \
---e-weights \
---n-weights \
---org \
---a "Abundance_RPKs" \
---o "graph/"
+  --f_meta "food_item_kos.csv" \
+  --m_meta "Data/test_sample/ko_taxonomy_abundance.csv" \
+  --mapper "AMON_output/kegg_mapper.tsv" \
+  --rn_json "AMON_output/rn_dict.json" \
+  --e-weights \
+  --n-weights \
+  --org \
+  --a "Abundance_RPKs" \
+  --o "graph/"
+```
 
 ### 4. Generate Food Compound Report
 
+```bash
 python src/WholeGenome_proc/RenderCompoundAnalysis.py \
---node_file graph/WG_nodes_df.csv \
---output food_compound_report.html
+  --node_file "graph/WG_nodes_df.csv" \
+  --output "food_compound_report.html"
+```
 
+---
 
-## Step 4: Microbial Compound Report (Optional)
+## Step 4 — Microbial Compound Report *(optional)*
 
-If microbial taxonomy and abundance data are available:
+Requires microbial taxonomy and abundance data.
 
+```bash
 python src/RenderCompoundAnalysis_Microbe.py \
---node_file graph/nodes.csv \
---edge_file graph/edges.csv \
---output microbe_compound_report.html
+  --node_file "graph/nodes.csv" \
+  --edge_file "graph/edges.csv" \
+  --output "microbe_compound_report.html"
+```
 
-## Step 5: Build Graph and Extract Patterns
+---
 
+## Step 5 — Build Graph and Extract Patterns
+
+```bash
 python src/run_graph.py \
---n graph/nodes.csv \
---e graph/edges.csv \
---o graph_results.csv
+  --n "graph/nodes.csv" \
+  --e "graph/edges.csv" \
+  --o "graph_results.csv"
+```
 
-Patterns Identified:
-1. Food → Microbe
-2. Food → Both
-3. Both → Both
+**Patterns identified:**
 
-## Step 6: Visualize Graph Results
+| Pattern | Description |
+|---------|-------------|
+| Food → Microbe | Compound produced by diet, consumed by microbe |
+| Food → Both | Compound shared between diet and microbial production |
+| Both → Both | Compound produced and consumed across both sources |
 
+---
+
+## Step 6 — Visualize Graph Results
+
+```bash
 python src/RenderGraphResults_Report.py \
---patterns "graph_results.csv" \
---rxn_json "AMON_output/rn_dict.json" \
---output "graph_results_report.html"
+  --patterns "graph_results.csv" \
+  --rxn_json "AMON_output/rn_dict.json" \
+  --output "graph_results_report.html"
+```
 
-!!! note 
-    These are steps 2 through 4 of the general workflow found in the [home page](index.md)
+!!! note
+    Steps 2–4 correspond to the general workflow described on the [home page](index.md).
 
 !!! tip
-    Use the run_workflow.py wrapper script to run steps 3-4 automatically, see [quick start example](quickstart.md)
+    Use `run_workflow.py` to run Steps 3–4 automatically. See the
+    [Quick Start guide](quickstart.md) for a complete example.
