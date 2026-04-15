@@ -4,12 +4,13 @@ The purpose of this code will be to create a metabolic network where nodes repre
 
 ## General Workflow 
 
-Every user will need to set up and install this program the same way. To do this go to [1. Getting Started](https://github.com/acolorado1/DietMicrobeNet/wiki/1.-Getting-Started) in the repo's [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki). 
+Every user will need to set up and install this program the same way. To do this go to [Installation](https://acolorado1.github.io/DietMicrobeNet/installation/) in the repo's [Docs](https://acolorado1.github.io/DietMicrobeNet/). 
 
 After getting set up, you will have decide if you want to run each step manually or use the provided Snakemake Workflow. 
 
-* For **manual approach** follow steps 2-6 in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki).
-* For **Snakemake Workflow** (RECOMMENDED) follow [step 2](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items), then run [Snakemake](https://github.com/acolorado1/DietMicrobeNet/wiki/Snakemake-Workflow-(Steps-3%E2%80%904)), then run [step 5](https://github.com/acolorado1/DietMicrobeNet/wiki/5.-Inter%E2%80%90Sample-Comparison) for graph comparison, and then run [step 6](https://github.com/acolorado1/DietMicrobeNet/wiki/Metabolome-Comparison) for metabolome comparison. All steps are found in the [Wiki](https://github.com/acolorado1/DietMicrobeNet/wiki)
+* For **manual approach** follow instructions in the usage section: [Running the pipeline](https://acolorado1.github.io/DietMicrobeNet/usage/).
+* For **Snakemake Workflow** (RECOMMENDED) follow [Quick Start Example](https://acolorado1.github.io/DietMicrobeNet/quickstart/) instructions
+* [Inter-Sample Comparison](https://acolorado1.github.io/DietMicrobeNet/intersample_comp/) and [Metabolome Comparison](https://acolorado1.github.io/DietMicrobeNet/metabolome_comp/) can be performed after manual or snakemake approach
 
 ## Outputs
 
