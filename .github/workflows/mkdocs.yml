@@ -1,8 +1,8 @@
 name: Deploy versioned MkDocs (on release)
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
 
 permissions:
   contents: write
