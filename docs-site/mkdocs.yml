@@ -28,6 +28,13 @@ nav:
   - Changelog: CHANGELOG.md
 
 markdown_extensions:
-  - admonition        # nice note/warning boxes
-  - pymdownx.details  # collapsible sections
-  - pymdownx.superfences  # code blocks with syntax highlighting
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10/dist/mermaid.min.js

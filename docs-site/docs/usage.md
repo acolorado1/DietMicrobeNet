@@ -74,15 +74,15 @@ using KEGG organism data.
 **Limitations:** Requires decomposing complex foods into components · Doesn't account for
 ripeness or cooking · Predictions may not reflect actual composition
 
----
-
-## Step 3A — FooDB Workflow
-
 ![Graph Creation Methods](img/graph_creation_workflow.png)
 
 !!! note
     [AMON](https://github.com/lozuponelab/AMON) takes a list of KOs and finds producible
     compounds via KEGG reactions, assigning their origin (dietary vs. microbial).
+
+---
+
+## Step 3A — FooDB Workflow
 
 ### 1. Generate Food–Compound Metadata
 
