@@ -1,0 +1,28 @@
+site_name: DietMicrobeNet
+site_description: Creating metabolic networks to find what dietary originating compounds microbes are capable of metabolizing
+site_url: https://github.com/acolorado1/DietMicrobeNet
+
+theme:
+  name: readthedocs
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+  - Usage:
+    - Running the Pipeline: usage.md
+    - Inter-Sample Comparison: intersample_comp.md
+    - Metabolome Comparison: metabolome_comp.md
+  - Output:
+    - Output Files: output.md
+  - Changelog: CHANGELOG.md
+
+markdown_extensions:
+  - admonition        # nice note/warning boxes
+  - pymdownx.details  # collapsible sections
+  - pymdownx.superfences  # code blocks with syntax highlighting
