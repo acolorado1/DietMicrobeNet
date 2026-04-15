@@ -1,20 +1,36 @@
-name: Deploy Docs
+name: Deploy MkDocs to GitHub Pages
 
 on:
   push:
-    tags:
-      - "v*"   # triggers on any version tag like v1.0.0
+    branches:
+      - main
+
+permissions:
+  contents: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0   # mike needs full git history
-      - uses: actions/setup-python@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install mkdocs mkdocs-material mike
-      - run: git config user.name "github-actions" && git config user.email "github-actions@github.com"
-      - run: mike deploy --push --update-aliases ${{ github.ref_name }} latest
+
+      - name: Install dependencies
+        run: |
+          pip install mkdocs mkdocs-material
+
+      - name: Build site
+        run: mkdocs build
+        working-directory: docs-site
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs-site/site
