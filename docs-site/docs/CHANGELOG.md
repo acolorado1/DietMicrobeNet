@@ -1,5 +1,8 @@
 # Changelog 
 
+## v1.0.11
+- Minor bug fixes for Whole Genome part of the pipeline
+
 ## v1.0.9
 
 - Added version tracking to documentation 

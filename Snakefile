@@ -313,7 +313,7 @@ if GENOME:
                 "--org" if INCLUDE_ORGS else ""
             ])),
             abundance = ABUNDANCE_COL,
-            graph_dir = "{dir}/output_gen/graph"
+            graph_dir = "{dir}/output_gen/graph/"
         output:
             nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
             edges = "{dir}/output_gen/graph/WG_edges_df.csv",
