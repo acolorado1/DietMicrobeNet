@@ -100,7 +100,7 @@ if FOODB:
         conda: "DMnet_env.yaml"
         shell:
             """
-            Rscript src/Metabolome_proc/comp_FoodDB.R \
+            Rscript src/foodb_proc/comp_FoodDB.R \
                 --diet_file {input.f_file} \
                 --content Data/Content.csv \
                 --ExDes_file Data/CompoundExternalDescriptor.csv \
@@ -116,7 +116,7 @@ if FOODB:
             conda: "DMnet_env.yaml"
             shell:
                 """
-                python {workflow.basedir}/src/Metabolome_proc/RenderCompoundAnalysis.py \
+                python {workflow.basedir}/src/foodb_proc/RenderCompoundAnalysis.py \
                     --food_file {input.f_meta} \
                     --output {output.report}
                 """
@@ -173,7 +173,7 @@ if FOODB:
         shell:
             """
             mkdir -p {params.graph_dir}
-            python src/Metabolome_proc/main_metab.py \
+            python src/foodb_proc/main_foodb.py \
                 --f {input.f_meta} \
                 --r {input.rn_json} \
                 --m_meta {input.m_meta} \
