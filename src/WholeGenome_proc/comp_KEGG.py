@@ -34,7 +34,7 @@ def get_KEGG_KOs(org_data: str, output: str, overwrite=True):
             print(f"{kofile} exists. Skipping.")
             continue
 
-        result = sp.run(["extract_ko_genome_from_organism.py", "-i", code, "-o", kofile],
+        result = sp.run(["extract_ko_genome_from_organism", "-i", code, "-o", kofile],
                         capture_output=True, text=True)
         if result.returncode != 0:
             print(f"Error fetching {code}: {result.stderr}")

@@ -1,4 +1,4 @@
-import metab_nodes_edges as ne 
+import foodb_nodes_edges as ne 
 import argparse as arg
 import matplotlib.pyplot as plt
 import seaborn as sns

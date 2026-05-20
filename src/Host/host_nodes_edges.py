@@ -1,22 +1,30 @@
-import json
+import json 
 import pandas as pd 
+import warnings
 
-def data_read_in(reaction_path:str, food_path:str, m_meta:str, 
-                 e_weights:bool, orgs:bool, abundance_column:str): 
+def data_read_in(
+        reaction_path:str, 
+        food_path:str, 
+        m_meta:str, 
+        h_meta:str,
+        e_weights:bool, 
+        orgs:bool, 
+        microbe_abundance_col_name:str
+): 
     """read in all data needed for node and edge dataframe creation 
 
     Args:
         reaction_path (str): path to AMON rn_dict.json file 
         food_path (str): path to CSV containing food information 
         m_meta (str): path to CSV of microbe KO metadata (taxonomy and abundance)
+        h_meta (str): path to CSV of host KO metadata (abundance)
         e_weights (bool): True or False whether edge weights (abundance) should be included
         orgs (bool): True or False whether organism information will be added 
-        abundance_column (str): name of the column where abundance information is located 
+        microbe_abundance_col_name (str): name of the column where abundance information is located 
 
     Returns:
         pandas dataframes and a dictionary 
     """
-
     # get reaction dictionary from AMON output 
     with open(reaction_path, 'r') as json_rn: 
         rxns = json.load(json_rn)
@@ -27,24 +35,53 @@ def data_read_in(reaction_path:str, food_path:str, m_meta:str,
     # get microbe metadata 
     microbe_meta = pd.read_csv(m_meta)
     if e_weights and orgs: # both abundance and organisms 
-        m_meta_clean = microbe_meta.dropna(subset=['KO', 'taxonomy', abundance_column]).copy() # remove Nan
+        m_meta_clean = microbe_meta.dropna(subset=['KO', 'taxonomy', microbe_abundance_col_name]).copy() # remove Nan
     elif orgs: # just organisms 
         m_meta_clean = microbe_meta.dropna(subset=['KO', 'taxonomy']).copy() # remove Nan
     elif e_weights: # just abundance 
-        m_meta_clean = microbe_meta.dropna(subset=['KO', abundance_column]).copy() # remove Nan
+        m_meta_clean = microbe_meta.dropna(subset=['KO', microbe_abundance_col_name]).copy() # remove Nan
     else: # neither abundance nor organisms 
         m_meta_clean = microbe_meta.dropna(subset=['KO']).copy() # remove Nan
     m_meta_clean['taxonomy'] = m_meta_clean['taxonomy'].astype(str) # convert taxonomy to string 
     print('NAs have been removed from microbe metadata')
 
-    return rxns, f_comp_df, m_meta_clean
+    # get host metadata 
+    h_meta_clean = pd.read_csv(h_meta)
 
-def make_organisms_abundance_dict(microbe_meta_clean, abundance_column:str, e_weights:bool, orgs:bool):
+    # Check column count
+    if h_meta_clean.shape[1] != 2:
+        raise ValueError(f"Expected 2 columns, got {h_meta_clean.shape[1]}")
+
+    # Validate column 1 (position 0): non-null values must be strings
+    h_meta_clean.iloc[:, 0] = h_meta_clean.iloc[:, 0].where(
+        h_meta_clean.iloc[:, 0].isnull(), h_meta_clean.iloc[:, 0].astype(str)
+    )
+
+    # Validate column 2 (position 1): non-null values must be numeric (raises on bad values)
+    non_null_mask = h_meta_clean.iloc[:, 1].notnull()
+    try:
+        pd.to_numeric(h_meta_clean.iloc[:, 1][non_null_mask], errors="raise")
+    except ValueError as e:
+        raise ValueError(f"Column 2 contains non-numeric values: {e}")
+
+    h_meta_clean.iloc[:, 1] = pd.to_numeric(h_meta_clean.iloc[:, 1])
+
+    # warn and remove NAs only after confirming column 2 values are valid
+    count_no_abundance = h_meta_clean.iloc[:, 1].isna().sum()
+    if count_no_abundance > 0:
+        warnings.warn(f"There are {count_no_abundance} host KOs with no associated abundance. These will be removed.")
+        h_meta_clean = h_meta_clean.dropna(subset=[h_meta_clean.columns[1]]).reset_index(drop=True)
+
+    return rxns, f_comp_df, m_meta_clean, h_meta_clean
+def make_organisms_abundance_dict(microbe_meta_clean, 
+                                  microbe_abundance_col_name:str, 
+                                  e_weights:bool, 
+                                  orgs:bool):
     """associated microbe taxonomy and abundance values with KOs 
 
     Args:
         microbe_meta_clean (pandas df): dataframe containing KOs, taxonomy and abundance 
-        abundance_column (str): name of the column containing abundance information 
+        microbe_abundance_col_name (str): name of the column containing abundance information 
         e_weights (bool): True or false whether edge weights (abundance will be included)
         orgs (bool): True or false wether organisms will be included in edge information 
     
@@ -53,8 +90,8 @@ def make_organisms_abundance_dict(microbe_meta_clean, abundance_column:str, e_we
     """
     if e_weights:
         # create dict of KOs with abundance 
-        ko_abundance_sum = microbe_meta_clean.groupby('KO', as_index=False).sum(abundance_column)
-        ko_abundance_dict = ko_abundance_sum.set_index('KO')[abundance_column].to_dict()
+        ko_abundance_sum = microbe_meta_clean.groupby('KO', as_index=False).sum(microbe_abundance_col_name)
+        ko_abundance_dict = ko_abundance_sum.set_index('KO')[microbe_abundance_col_name].to_dict()
     else:
         ko_abundance_dict = None
 
@@ -66,6 +103,26 @@ def make_organisms_abundance_dict(microbe_meta_clean, abundance_column:str, e_we
         ko_orgs_dict = None
 
     return ko_abundance_dict, ko_orgs_dict
+
+def make_host_abundance_dict(h_meta_clean): 
+    """convert host metadata to dictionary, sums abundance if duplicated KOs, will warn if there are duplicates 
+
+    Args:
+        h_meta_clean (pandas df): created during data_read_in() or pandas dataframe of host metadata 
+
+    Returns:
+        dict: host kos and abundance {ko:abundance}
+    """
+    # warn if duplicate KOs
+    num_duplicates = h_meta_clean.iloc[:, 0].duplicated().sum()
+    if num_duplicates > 0:
+         warnings.warn(f"There are {num_duplicates} KOs that are duplicated.")
+
+    # create dict of KOs with summed abundance
+    first_col = h_meta_clean.columns[0]
+    second_col = h_meta_clean.columns[1]
+    ko_abundance_sum = h_meta_clean.groupby(first_col)[second_col].sum()
+    return ko_abundance_sum.to_dict()
 
 def get_organisms(kos:list, ko_organisms:dict): 
     """from a list of KOs get all associated organisms 
@@ -101,41 +158,36 @@ def get_abundance(kos:list, ko_abundance:dict):
 def build_edges_df(rxns:dict, 
                    orgs:bool, 
                    e_weights:bool, 
-                   ko_organisms:dict, 
-                   ko_abundance:dict):
-    """build a dataframe containing edge information
+                   m_ko_organisms:dict, 
+                   m_ko_abundance:dict, 
+                   h_ko_abundance:dict):
 
-    Args:
-        rxns (dict): dictionary of reactions from AMON outputs 
-        orgs (bool): whether organisms will be included 
-        e_weights (bool): whether abundance information will be included 
-        ko_organisms (dict): keys are kos and values a list of associated organisms 
-        ko_abundance (dict): keys are kos and values are numbers representing their abundance 
-
-    Returns:
-        pandas df: each row represents an edge and associated information 
-    """
     edges_list = []
-    org_comps = []
+    microbe_comps = []
+    host_comps = []
     all_rxn_comps = []
 
     for rxn, info in rxns.items():
 
-        # for edge creation need reaction equation and associated KOs
         equation = info['EQUATION']
-
         orthology = info['ORTHOLOGY']
         kos = {orthology[index][0] for index in range(len(orthology))}
 
-        # Optional fields: organisms and abundance 
-        organisms = get_organisms(kos, ko_organisms) if orgs else pd.NA
-        abundance = get_abundance(kos, ko_abundance) if e_weights else pd.NA
+        # Optional fields: organisms and microbe abundance 
+        organisms = get_organisms(kos, m_ko_organisms) if orgs else pd.NA
+        m_abundance = get_abundance(kos, m_ko_abundance) if e_weights else pd.NA
+        h_abundance = get_abundance(kos, h_ko_abundance)
 
         reactants = equation[0]
         products = equation[1]
 
-        org_comps += products
         all_rxn_comps += reactants + products
+
+        # track products by source separately
+        if any(ko in m_ko_abundance for ko in kos):
+            microbe_comps += products
+        if any(ko in h_ko_abundance for ko in kos):
+            host_comps += products
 
         for r in reactants:
             for p in products:
@@ -145,50 +197,56 @@ def build_edges_df(rxns:dict,
                     'reaction': rxn,
                     'KOs': list(kos),
                     'organisms': organisms,
-                    'abundance': abundance
+                    'm_abundance': m_abundance, 
+                    'h_abundance': h_abundance
                 })
 
-    return pd.DataFrame(edges_list), list(set(org_comps)), list(set(all_rxn_comps))
+    return pd.DataFrame(edges_list), list(set(microbe_comps)), list(set(host_comps)), list(set(all_rxn_comps))
 
-def build_nodes_df(food_meta, org_comps:list, all_rxn_comps:list, frequency:bool):
-    """build a dataframe containing information about all nodes 
+# TODO: build nodes df 
+def build_nodes_df(food_meta, 
+                   microbe_comps: list,
+                   host_comps: list,
+                   all_rxn_comps: list, 
+                   frequency: bool):
 
-    Args:
-        food_meta (pandas df): dataframe containing food KOs and their associated food items
-        org_comps (list): list compounds with organism origin 
-        all_rxn_comps (list): list of compounds associated with reactions 
-        frequency (bool): whether food frequency will be taken into account 
-
-    Returns:
-        pandas df: each row represents a node and associated information 
-    """
     nodes_list = []
 
     food_comps = set(food_meta['kegg_id'].to_list())
+    microbe_comps = set(microbe_comps)
+    host_comps = set(host_comps)
     all_comps = set(all_rxn_comps + list(food_comps))
+
+    origin_map = {
+        frozenset():                            'none',
+        frozenset({'diet'}):                    'diet',
+        frozenset({'microbe'}):                 'microbe',
+        frozenset({'host'}):                    'host',
+        frozenset({'host', 'diet'}):            'hostdiet',
+        frozenset({'host', 'microbe'}):         'hostmicrobe',
+        frozenset({'microbe', 'diet'}):         'microbediet',
+        frozenset({'host', 'microbe', 'diet'}): 'all',
+    }
 
     for compound in all_comps:
 
-        # Default to NA
+        sources = set()
+        if compound in food_comps:
+            sources.add('diet')
+        if compound in microbe_comps:
+            sources.add('microbe')
+        if compound in host_comps:
+            sources.add('host')
+
+        origin = origin_map[frozenset(sources)]
+
         foods = pd.NA
         freq = pd.NA
 
-        # set origin of compound 
-        if compound in food_comps and compound in org_comps:
-            origin = 'both'
-        elif compound in food_comps:
-            origin = 'food'
-        elif compound in org_comps:
-            origin = 'microbe'
-        else:
-            origin = 'none'
-
-        # Only assign food associations if origin is food or both
-        if origin in ('food', 'both'):
+        if 'diet' in sources:
             subset = food_meta[food_meta['kegg_id'] == compound]
             foods = list(subset['name'].unique())
-            
-            if frequency: # if nodes are weights by frequency of consumption 
+            if frequency:
                 unique_foods = subset.drop_duplicates(subset=['name'])
                 freq = unique_foods['food_frequency'].sum()
 

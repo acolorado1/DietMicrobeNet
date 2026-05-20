@@ -13,6 +13,7 @@ def main():
                         help="List of input directories, MUST be absolute paths")
     parser.add_argument("--foodb", action="store_true", help="Enable foodb based analysis")
     parser.add_argument("--genome", action="store_true", help="Enable genome based analysis")
+    parser.add_argument("--host", action="store_true", help="Enable host based analysis")
     parser.add_argument("--e-weights", action="store_true", help="Enable edge weights: read abundance")
     parser.add_argument("--n-weights", action="store_true", help="Enable node weights: food frequency")
     parser.add_argument("--include-orgs", action="store_true", help="Include organisms")
@@ -24,7 +25,7 @@ def main():
     parser.add_argument("--cores", type=int, default=1, help="Number of cores to use")
     parser.add_argument("--profile", type=str, help="Snakemake profile to use")
     parser.add_argument("--dry-run", "-n", action="store_true", help="Perform a dry-run")
-    parser.add_argument("--force", nargs="*", default=[],
+    parser.add_argument("--force", nargs="*", default=None,
                         help="Force rerun of rules, e.g., '--force all' or '--force rule1 rule2'")
     parser.add_argument("--rerun-incomplete", action="store_true",
                         help="Rerun rules that have incomplete output files")
@@ -40,6 +41,7 @@ def main():
         "directories": directories_str,
         "foodb": args.foodb,
         "genome": args.genome,
+        "host": args.host,
         "e_weights": args.e_weights,
         "n_weights": args.n_weights,
         "include_orgs": args.include_orgs,
@@ -65,7 +67,7 @@ def main():
             cmd += f" --profile {args.profile}"
         if args.dry_run:
             cmd += " -n"
-        if args.force:
+        if args.force is not None:
             if "all" in args.force:
                 cmd += " --forceall"
             else:
