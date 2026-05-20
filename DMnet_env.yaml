@@ -2,7 +2,7 @@ name: DietMicrobeNet
 channels:
   - conda-forge
   - bioconda
-  - defaults
+  - nodefaults
 
 dependencies:
   - python>=3.10

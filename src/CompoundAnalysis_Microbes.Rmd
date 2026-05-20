@@ -50,7 +50,7 @@ edges <- read_csv(params$edge_file)
 
 # clean node file 
 microbe_comps <- nodes %>% 
-  filter(origin != 'food' & origin != 'none') %>% 
+  filter(origin == "microbe") %>% 
   mutate(assoc_food = gsub("\\[|\\]|'", "", assoc_food)) %>%  # remove [], '
   separate_rows(assoc_food, sep = ",")  # split into multiple rows
 microbe_comps$assoc_food <- stringr::str_trim(microbe_comps$assoc_food)
@@ -73,7 +73,7 @@ meta <- microbe_comps %>%
   left_join(hmdb, by = "compound", relationship = "many-to-many")
 ```
 
-Here are visuals to aid in understanding compounds that microbes are predicted to have created. These compounds are located in the nodes and edges file that are generated in the graph creation portion of the pipeline. Compounds included are those with origin "microbe" or "both", the latter being both microbe or food originating. This report is broken up into three sections: (1) understanding compounds being produced by a genus; (2) understanding compounds being produced by species; (3) understanding compounds that can come from both microbes and food and the genus and species level.
+Here are visuals to aid in understanding compounds that microbes are predicted to have created. These compounds are located in the nodes and edges file that are generated in the graph creation portion of the pipeline. Compounds included are only those with origin "microbe" meaning that compounds produced by microbes but also found in foods or produced by host will be excluded. This report is broken up into three sections: (1) understanding compounds being produced by a genus; (2) understanding compounds being produced by species; (3) understanding compounds that can come from both microbes and food and the genus and species level.
 
 ## Production of Compounds by Genera {.tabset}
 
@@ -84,7 +84,7 @@ Here are visuals to aid in understanding compounds that microbes are predicted t
 # separate genus and species 
 taxonomy_meta <- meta %>% 
   select(compound, organisms, taxonomy_super_class, taxonomy_class) %>% 
-  distinct(compound, organisms, .keep_all = T) %>% #there could be repetes due to food items
+  distinct(compound, organisms, .keep_all = T) %>% #there could be repeats due to food items
   separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
                        too_few = "align_start", too_many = "merge", cols_remove = F)
 taxonomy_meta %>% 

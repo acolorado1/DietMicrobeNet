@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from Metabolome_proc import metab_nodes_edges as ne 
+from foodb_proc import foodb_nodes_edges as ne
 
 # create dummy data 
 food_meta_df = pd.DataFrame({
