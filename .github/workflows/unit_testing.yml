@@ -1,0 +1,71 @@
+name: DietMicrobeNet Unit Testing 
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  host_test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: DietMicrobeNet
+          environment-file: DMnet_env.yaml
+      - run: |
+          pip install -e .
+          cd src/tests/
+          python -m unittest test_Host
+
+  foodb_test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: DietMicrobeNet
+          environment-file: DMnet_env.yaml
+      - run: |
+          pip install -e .
+          cd src/tests/
+          python -m unittest test_Foodb
+
+  wholegenome_test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: DietMicrobeNet
+          environment-file: DMnet_env.yaml
+      - run: |
+          pip install -e .
+          cd src/tests/
+          python -m unittest test_WholeGenome
+
+  graphcomparison_test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: DietMicrobeNet
+          environment-file: DMnet_env.yaml
+      - run: |
+          pip install -e .
+          cd src/tests/
+          python -m unittest test_GraphComparison
