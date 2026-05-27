@@ -1,16 +1,46 @@
-# These are the 12 patterns of interest 
-    # 1. diet → microbe → host 
-    # 2. diet → microbe → hostdiet
-    # 3. diet → microbe → hostmicrobe 
-    # 4. diet → microbe → all
-    # 5. diet → microbediet → host 
-    # 6. diet → microbediet → hostdiet 
-    # 7. diet → microbediet → hostmicrobe
-    # 8. diet → microbediet → all 
-    # 9. microbediet → microbediet → host 
-    # 10. microbediet → microbediet → hostdiet 
-    # 11. microbediet → microbediet → hostmicrobe
-    # 12. microbediet → microbediet → all  
+# All 36 possible patterns (node1 → node2 → node3):
+#
+# --- diet as position 1 (12 patterns) ---
+# 1.  diet → microbe     → host
+# 2.  diet → microbe     → hostdiet
+# 3.  diet → microbe     → hostmicrobe
+# 4.  diet → microbe     → all
+# 5.  diet → microbediet → host
+# 6.  diet → microbediet → hostdiet
+# 7.  diet → microbediet → hostmicrobe
+# 8.  diet → microbediet → all
+# 9.  diet → all         → host
+# 10. diet → all         → hostdiet
+# 11. diet → all         → hostmicrobe
+# 12. diet → all         → all
+#
+# --- microbediet as position 1 (12 patterns) ---
+# 13. microbediet → microbe     → host
+# 14. microbediet → microbe     → hostdiet
+# 15. microbediet → microbe     → hostmicrobe
+# 16. microbediet → microbe     → all
+# 17. microbediet → microbediet → host
+# 18. microbediet → microbediet → hostdiet
+# 19. microbediet → microbediet → hostmicrobe
+# 20. microbediet → microbediet → all
+# 21. microbediet → all         → host
+# 22. microbediet → all         → hostdiet
+# 23. microbediet → all         → hostmicrobe
+# 24. microbediet → all         → all
+#
+# --- all as position 1 (12 patterns) ---
+# 25. all → microbe     → host
+# 26. all → microbe     → hostdiet
+# 27. all → microbe     → hostmicrobe
+# 28. all → microbe     → all
+# 29. all → microbediet → host
+# 30. all → microbediet → hostdiet
+# 31. all → microbediet → hostmicrobe
+# 32. all → microbediet → all
+# 33. all → all         → host
+# 34. all → all         → hostdiet
+# 35. all → all         → hostmicrobe
+# 36. all → all         → all
 
 
 import pandas as pd
@@ -108,8 +138,8 @@ def main():
 
     results = []
 
-    valid_n1 = {"diet", "microbediet"}
-    valid_n2 = {"microbe", "microbediet"}
+    valid_n1 = {"diet", "microbediet", "all"}
+    valid_n2 = {"microbe", "microbediet", "all"}
     valid_n3 = {"host", "hostdiet", "hostmicrobe", "all"}
 
     for c1, c2, edge1 in tqdm(G.edges(data=True), total=G.number_of_edges(), ncols=80):
