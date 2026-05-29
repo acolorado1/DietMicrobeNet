@@ -7,6 +7,7 @@ DIRECTORIES   = [d.strip().rstrip("/") for d in config["directories"].split(",")
 FOODB         = config.get("foodb", False)
 GENOME        = config.get("genome", False)
 HOST          = config.get("host", False)
+METABOLOME    = config.get("metabolome", False)
 E_WEIGHTS     = config.get("e_weights", False)
 N_WEIGHTS     = config.get("n_weights", False)
 INCLUDE_ORGS  = config.get("include_orgs", False)
@@ -21,6 +22,7 @@ print(f"  Directories:    {DIRECTORIES}")
 print(f"  FooDB:          {FOODB}")
 print(f"  Genome:         {GENOME}")
 print(f"  Host:           {HOST}")
+print(f"  Metabolome:     {METABOLOME}")
 print(f"  E Weights:      {E_WEIGHTS}")
 print(f"  N Weights:      {N_WEIGHTS}")
 print(f"  Include Orgs:   {INCLUDE_ORGS}")
@@ -106,7 +108,9 @@ if FOODB:
             "{dir}/output_fdb/graph/network_summary.txt",
             "{dir}/output_fdb/microbe_compound_report.html" if INCLUDE_ORGS and N_WEIGHTS else [],
             "{dir}/output_fdb/graph/graph_results.csv",
-            "{dir}/output_fdb/graph/graph_results_report.html"
+            "{dir}/output_fdb/graph/graph_results_report.html",
+            "{dir}/output_fdb/MetabolomeComparison_Report.html" if METABOLOME else []
+
 
     rule CreateFoodMetadata_fdb:
         input: 
@@ -243,6 +247,21 @@ if FOODB:
                 --rxn_json {input.rxn_json} \
                 --output {output.output}
             """
+    
+    rule MetabolomeComparisonReport_fdb: 
+        input: 
+            graph_res = "{dir}/output_fdb/graph/graph_results.csv",
+            metabolome = "{dir}/metabolome.csv"
+        output: 
+            output = "{dir}/output_fdb/MetabolomeComparison_Report.html"
+        conda: "DMnet_env.yaml"
+        shell: 
+            """
+            python {workflow.basedir}/src/RenderGraphResults_Report.py \
+                --patterns {input.graph_res} \
+                --metabolome {input.metabolome} \
+                --output {output.output}
+            """
 
 # ---------------------------
 # Genome rules
@@ -263,7 +282,9 @@ if GENOME:
             "{dir}/output_gen/graph/network_summary.txt",
             "{dir}/output_gen/microbe_compound_report.html" if INCLUDE_ORGS and N_WEIGHTS else [],
             "{dir}/output_gen/graph/graph_results.csv", 
-            "{dir}/output_gen/graph/graph_results_report.html"
+            "{dir}/output_gen/graph/graph_results_report.html",
+            "{dir}/output_gen/MetabolomeComparison_Report.html" if METABOLOME else []
+
 
     rule CreateFoodMetadata_gen:
         input: 
@@ -407,6 +428,21 @@ if GENOME:
                 --output {output.output}
             """
 
+    rule MetabolomeComparisonReport_gen: 
+        input: 
+            graph_res = "{dir}/output_gen/graph/graph_results.csv",
+            metabolome = "{dir}/metabolome.csv"
+        output: 
+            output = "{dir}/output_gen/MetabolomeComparison_Report.html"
+        conda: "DMnet_env.yaml"
+        shell: 
+            """
+            python {workflow.basedir}/src/RenderGraphResults_Report.py \
+                --patterns {input.graph_res} \
+                --metabolome {input.metabolome} \
+                --output {output.output}
+            """
+
 if HOST: 
 
     rule all_host:
@@ -420,7 +456,8 @@ if HOST:
             "{dir}/output_host/graph/network_summary.txt",
             "{dir}/output_host/microbe_compound_report.html" if INCLUDE_ORGS and N_WEIGHTS else [],
             "{dir}/output_host/graph/graph_results.csv",
-            "{dir}/output_host/graph/graph_results_report.html"
+            "{dir}/output_host/graph/graph_results_report.html", 
+            "{dir}/output_host/MetabolomeComparison_Report.html" if METABOLOME else []
 
     rule CreateFoodMetadata_host:
         input: 
@@ -549,7 +586,7 @@ if HOST:
                 --o {output.output}
             """
 
-    rule PatternReport_fdb: 
+    rule PatternReport_host: 
         input: 
             graph_res = "{dir}/output_host/graph/graph_results.csv",
             rxn_json = "{dir}/output_host/AMON_output/rn_dict.json"
@@ -561,5 +598,20 @@ if HOST:
             python {workflow.basedir}/src/Host/RenderHostGraphResults_Report.py \
                 --patterns {input.graph_res} \
                 --rxn_json {input.rxn_json} \
+                --output {output.output}
+            """
+
+    rule MetabolomeComparisonReport_host: 
+        input: 
+            graph_res = "{dir}/output_host/graph/graph_results.csv",
+            metabolome = "{dir}/metabolome.csv"
+        output: 
+            output = "{dir}/output_host/MetabolomeComparison_Report.html"
+        conda: "DMnet_env.yaml"
+        shell: 
+            """
+            python {workflow.basedir}/src/RenderGraphResults_Report.py \
+                --patterns {input.graph_res} \
+                --metabolome {input.metabolome} \
                 --output {output.output}
             """
