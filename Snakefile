@@ -419,7 +419,8 @@ if HOST:
             "{dir}/output_host/graph/FoodFrequencyDistribution.png", 
             "{dir}/output_host/graph/network_summary.txt",
             "{dir}/output_host/microbe_compound_report.html" if INCLUDE_ORGS and N_WEIGHTS else [],
-            "{dir}/output_host/graph/graph_results.csv"
+            "{dir}/output_host/graph/graph_results.csv",
+            "{dir}/output_host/graph/graph_results_report.html"
 
     rule CreateFoodMetadata_host:
         input: 
@@ -546,4 +547,19 @@ if HOST:
                 --n {input.nodes} \
                 --e {input.edges} \
                 --o {output.output}
+            """
+
+    rule PatternReport_fdb: 
+        input: 
+            graph_res = "{dir}/output_host/graph/graph_results.csv",
+            rxn_json = "{dir}/output_host/AMON_output/rn_dict.json"
+        output: 
+            output = "{dir}/output_host/graph/graph_results_report.html"
+        conda: "DMnet_env.yaml"
+        shell: 
+            """
+            python {workflow.basedir}/src/Host/RenderHostGraphResults_Report.py \
+                --patterns {input.graph_res} \
+                --rxn_json {input.rxn_json} \
+                --output {output.output}
             """
