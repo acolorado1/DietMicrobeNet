@@ -1,0 +1,617 @@
+---
+title: "Graph Query Results Report with Host Information"
+date: "`r Sys.Date()`"
+params:
+  patterns: "default.csv"
+  reactions: "rxn_default.csv"
+---
+
+```{css, echo=FALSE, purl=FALSE}
+h1, h2, h3, h4 {
+  text-align: center;
+}
+```
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = TRUE, echo = FALSE,
+                      fig.align = "center")
+options(scipen = 999)
+
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(igraph)
+library(scales)
+library(ggplot2)
+library(ggraph)
+library(jsonlite)
+library(plotly)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(KEGGREST)
+```
+
+```{r load-data}
+hmdb      <- read_csv("../Data/hmdb.csv")
+colnames(hmdb)[1] <- "compound"
+patterns  <- read_csv(params$patterns)
+reactions <- read_json(params$reactions)
+```
+
+```{r helper-functions}
+# ── Parsing helpers ──────────────────────────────────────────────────────────
+
+parse_list_col <- function(x) {
+  gsub("\\[|\\]|'", "", x)
+}
+
+extract_genus <- function(df, org_col) {
+  df %>%
+    mutate(organisms = parse_list_col(.data[[org_col]])) %>%
+    separate_rows(organisms, sep = ",") %>%
+    mutate(organisms = str_trim(organisms)) %>%
+    separate_wider_delim(organisms, delim = ".",
+                         names = c("genus", "species"),
+                         too_few = "align_start",
+                         too_many = "merge",
+                         cols_remove = FALSE)
+}
+
+# ── Network ──────────────────────────────────────────────────────────────────
+
+#' Build and plot a directed 3-node-chain network.
+#' Edges are compound1→compound2 (edge1) and compound2→compound3 (edge2).
+#' Node size ∝ freq; edge width ∝ m_abundance of the relevant edge.
+plot_network_3node <- function(df, color_values) {
+  if (nrow(df) == 0) { message("No patterns to plot."); return(invisible(NULL)) }
+
+  # Nodes
+  n1 <- df %>%
+    dplyr::select(compound = compound1_id,
+                  origin   = compound1_origin,
+                  assoc_food = compound1_assoc_food,
+                  freq     = compound1_freq)
+  n2 <- df %>%
+    dplyr::select(compound = compound2_id,
+                  origin   = compound2_origin,
+                  assoc_food = compound2_assoc_food,
+                  freq     = compound2_freq)
+  n3 <- df %>%
+    dplyr::select(compound = compound3_id,
+                  origin   = compound3_origin,
+                  assoc_food = compound3_assoc_food,
+                  freq     = compound3_freq)
+
+  nodes <- bind_rows(n1, n2, n3) %>%
+    distinct(compound, .keep_all = TRUE) %>%
+    mutate(freq = replace_na(freq, 0),
+           scaled_freq = rescale(freq, to = c(0, 20)))
+
+  # Edges: two hops per row
+  e1 <- df %>%
+    dplyr::select(from = compound1_id, to = compound2_id,
+                  reaction = edge1_reaction, KOs = edge1_KOs,
+                  organisms = edge1_organisms,
+                  abundance = edge1_m_abundance) %>%
+    mutate(hop = "edge1")
+
+  e2 <- df %>%
+    dplyr::select(from = compound2_id, to = compound3_id,
+                  reaction = edge2_reaction, KOs = edge2_KOs,
+                  organisms = edge2_organisms,
+                  abundance = edge2_m_abundance) %>%
+    mutate(hop = "edge2")
+
+  edges <- bind_rows(e1, e2) %>%
+    mutate(scaled_abundance = rescale(abundance, to = c(0, 1)))
+
+  net <- graph_from_data_frame(d = edges, vertices = nodes, directed = TRUE)
+
+  ggraph(net, layout = "fr") +
+    geom_edge_link(aes(width = scaled_abundance, linetype = hop),
+                   arrow = arrow(length = unit(4, "mm"), type = "closed"),
+                   end_cap = circle(1, "mm"),
+                   show.legend = FALSE) +
+    geom_node_point(aes(size = scaled_freq, color = origin)) +
+    scale_color_manual(values = color_values) +
+    scale_size(guide = "none") +
+    geom_node_label(aes(label = name), repel = TRUE, size = 3) +
+    theme_void()
+}
+
+# ── KEGG enrichment ──────────────────────────────────────────────────────────
+
+plot_kegg <- function(ko_vec) {
+  all_kos <- unique(unlist(lapply(str_extract_all(ko_vec, "K\\d{5}"), unlist)))
+  if (length(all_kos) == 0) { message("No KOs found."); return(invisible(NULL)) }
+
+  ekegg <- tryCatch(
+    enrichKEGG(gene = all_kos, organism = "ko", keyType = "kegg"),
+    error = function(e) { message("enrichKEGG failed: ", e$message); NULL }
+  )
+
+  if (is.null(ekegg) || nrow(as.data.frame(ekegg)) == 0) {
+    message("No significantly enriched KEGG pathways found.")
+    return(invisible(NULL))
+  }
+
+  print(barplot(ekegg, showCategory = 10))
+  print(dotplot(ekegg))
+}
+
+# ── Food plots ───────────────────────────────────────────────────────────────
+
+plot_compounds_food <- function(df, hmdb,
+                                id_col  = "compound1_id",
+                                food_col = "compound1_assoc_food",
+                                freq_col = "compound1_freq") {
+  food_compounds <- df %>%
+    dplyr::select(compound_id  = all_of(id_col),
+                  assoc_food   = all_of(food_col),
+                  freq         = all_of(freq_col)) %>%
+    mutate(assoc_food = parse_list_col(assoc_food)) %>%
+    separate_rows(assoc_food, sep = ",") %>%
+    mutate(assoc_food = str_trim(assoc_food))
+
+  food_compounds %>%
+    group_by(assoc_food) %>%
+    summarise(n_compounds = n_distinct(compound_id), .groups = "drop") %>%
+    ggplot(aes(x = n_compounds, y = reorder(assoc_food, n_compounds))) +
+      geom_bar(stat = "identity") +
+      theme_bw() +
+      xlab("Number of Compounds") + ylab(" ") %>%
+    print()
+
+  fc <- food_compounds %>%
+    rename(compound = compound_id) %>%
+    left_join(hmdb, by = "compound")
+
+  for (tax_level in c("taxonomy_super_class", "taxonomy_class")) {
+    fc %>%
+      dplyr::select(compound, all_of(tax_level), assoc_food) %>%
+      group_by(assoc_food, .data[[tax_level]]) %>%
+      summarise(n_compounds = n_distinct(compound), .groups = "drop") %>%
+      ggplot(aes(x = assoc_food, y = .data[[tax_level]], fill = n_compounds)) +
+        geom_tile() + theme_bw() +
+        scale_y_discrete(labels = label_wrap(width = 15)) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+        xlab(" ") +
+        ylab(gsub("_", " ", str_to_title(tax_level))) +
+        labs(fill = "Number of \nCompounds") %>%
+      print()
+  }
+}
+
+# ── Genera plots ─────────────────────────────────────────────────────────────
+
+plot_compounds_genera <- function(df, hmdb,
+                                  id_col  = "compound2_id",
+                                  org_col = "edge2_organisms",
+                                  abun_col = "edge2_m_abundance") {
+  mc <- df %>%
+    dplyr::select(compound_id = all_of(id_col),
+                  organisms   = all_of(org_col),
+                  abundance   = all_of(abun_col)) %>%
+    extract_genus("organisms") %>%
+    rename(compound = compound_id) %>%
+    left_join(hmdb, by = "compound")
+
+  mc %>%
+    group_by(genus) %>%
+    summarise(n_compounds = n_distinct(compound), .groups = "drop") %>%
+    ggplot(aes(x = n_compounds, y = reorder(genus, n_compounds))) +
+      geom_bar(stat = "identity") +
+      theme_bw() + xlab("Number of Compounds") + ylab(" ") %>%
+    print()
+
+  make_tile <- function(tax_level) {
+    mc %>%
+      dplyr::select(compound, all_of(tax_level), genus) %>%
+      group_by(genus, .data[[tax_level]]) %>%
+      summarise(n_compounds = n_distinct(compound), .groups = "drop") %>%
+      ggplot(aes(y = genus, x = .data[[tax_level]], fill = n_compounds)) +
+        geom_tile() + theme_bw() +
+        scale_y_discrete(labels = label_wrap(width = 15)) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+        ylab(" ") +
+        xlab(gsub("_", " ", str_to_title(tax_level))) +
+        labs(fill = "Number of \nCompounds")
+  }
+
+  plotly::ggplotly(make_tile("taxonomy_super_class"))
+  plotly::ggplotly(make_tile("taxonomy_class"))
+}
+
+# ── Reactions × Genera ───────────────────────────────────────────────────────
+
+plot_reactions_genera <- function(df, reactions,
+                                  rxn_col  = "edge1_reaction",
+                                  org_col  = "edge1_organisms",
+                                  abun_col = "edge1_m_abundance") {
+  rxn_names <- sapply(df[[rxn_col]], function(r) {
+    name <- reactions[[r]]$NAME
+    if (is.null(name)) "unnamed" else name
+  })
+
+  rxn_df <- data.frame(reaction = df[[rxn_col]], reaction_name = rxn_names)
+
+  p <- df %>%
+    mutate(reaction_name = rxn_df$reaction_name,
+           abundance = .data[[abun_col]]) %>%
+    extract_genus(org_col) %>%
+    dplyr::select(genus, abundance, reaction_name) %>%
+    group_by(genus, reaction_name) %>%
+    summarise(s_abundance = sum(abundance), .groups = "drop") %>%
+    ggplot(aes(y = reaction_name, x = genus, fill = s_abundance)) +
+      geom_tile() + theme_bw() +
+      scale_y_discrete(labels = label_wrap(width = 15)) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+      xlab(" ") + ylab("Reaction") + labs(fill = "Abundance")
+
+  plotly::ggplotly(p)
+}
+
+# ── Host abundance plots ─────────────────────────────────────────────────────
+
+#' Compare microbiome vs host abundance across reactions for a given edge.
+plot_abundance_comparison <- function(df,
+                                      rxn_col   = "edge2_reaction",
+                                      m_abun_col = "edge2_m_abundance",
+                                      h_abun_col = "edge2_h_abundance") {
+  df %>%
+    dplyr::select(reaction      = all_of(rxn_col),
+                  microbiome    = all_of(m_abun_col),
+                  host          = all_of(h_abun_col)) %>%
+    distinct() %>%
+    pivot_longer(cols = c(microbiome, host),
+                 names_to = "source", values_to = "abundance") %>%
+    group_by(reaction, source) %>%
+    summarise(total_abundance = sum(abundance, na.rm = TRUE), .groups = "drop") %>%
+    ggplot(aes(x = reorder(reaction, total_abundance),
+               y = total_abundance, fill = source)) +
+      geom_bar(stat = "identity", position = "dodge") +
+      coord_flip() +
+      scale_fill_manual(values = c("microbiome" = "steelblue", "host" = "coral")) +
+      theme_bw() +
+      xlab("Reaction") + ylab("Total Abundance") +
+      labs(fill = "Source")
+}
+
+#' Heatmap of host abundance per compound3 origin category.
+plot_host_abundance_by_origin <- function(df,
+                                           rxn_col   = "edge2_reaction",
+                                           h_abun_col = "edge2_h_abundance",
+                                           origin_col = "compound3_origin") {
+  df %>%
+    dplyr::select(reaction = all_of(rxn_col),
+                  h_abun   = all_of(h_abun_col),
+                  origin   = all_of(origin_col)) %>%
+    group_by(reaction, origin) %>%
+    summarise(total_h_abundance = sum(h_abun, na.rm = TRUE), .groups = "drop") %>%
+    ggplot(aes(x = origin, y = reaction, fill = total_h_abundance)) +
+      geom_tile() + theme_bw() +
+      scale_y_discrete(labels = label_wrap(width = 20)) +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+      xlab("Compound 3 Origin") + ylab("Reaction (Edge 2)") +
+      labs(fill = "Host\nAbundance")
+}
+
+#' Barplot of compound3 endpoint origin distribution.
+plot_endpoint_origins <- function(df) {
+  df %>%
+    count(compound3_origin) %>%
+    ggplot(aes(x = n, y = reorder(compound3_origin, n), fill = compound3_origin)) +
+      geom_bar(stat = "identity", show.legend = FALSE) +
+      theme_bw() +
+      xlab("Number of Patterns") + ylab("Compound 3 Origin")
+}
+
+#' Scatter: microbiome abundance (edge1) vs host abundance (edge2) per pathway,
+#' coloured by compound3 origin.
+plot_microbe_vs_host_scatter <- function(df) {
+  df %>%
+    dplyr::select(compound1   = compound1_id,
+                  compound3   = compound3_id,
+                  m_abun      = edge1_m_abundance,
+                  h_abun      = edge2_h_abundance,
+                  origin      = compound3_origin) %>%
+    distinct() %>%
+    ggplot(aes(x = m_abun, y = h_abun, color = origin,
+               text = paste0("C1: ", compound1, "<br>C3: ", compound3))) +
+      geom_point(alpha = 0.6, size = 2) +
+      scale_x_log10() + scale_y_log10() +
+      theme_bw() +
+      xlab("Microbiome Abundance (Edge 1, log)") +
+      ylab("Host Abundance (Edge 2, log)") +
+      labs(color = "Compound 3 Origin") ->
+    p
+  plotly::ggplotly(p, tooltip = "text")
+}
+```
+
+This report extends the standard graph query analysis to include **host-derived endpoint information**. Each row in the underlying data represents a **3-node metabolic chain**: a starting compound (compound 1) is transformed by a microbial reaction (edge 1) to an intermediate compound (compound 2), which is then transformed by a second reaction (edge 2) to a final endpoint compound (compound 3). Both microbiome and host abundance values are recorded for each edge, and compound 3 carries an origin label indicating whether the endpoint is primarily host-derived, microbiome-derived, diet-derived, or shared.
+
+The report is divided into two sections mirroring the original: **(1) Most Restrictive** (compound 1 origin = diet only) and **(2) Least Restrictive** (all other origin combinations).
+
+```{r split-patterns}
+# Most restrictive: diet -> microbe (intermediate) -> host (endpoint)
+patterns1 <- patterns %>%
+  filter(compound1_origin == "diet" &
+         compound2_origin == "microbe" &
+         compound3_origin == "host")
+
+# Least restrictive: everything that is NOT the most restrictive pattern
+patterns2 <- patterns %>%
+  filter(!(compound1_origin == "diet" &
+           compound2_origin == "microbe" &
+           compound3_origin == "host"))
+```
+
+---
+
+## Most Restrictive Results: Diet → Microbe → Host
+
+These are the strictest patterns: the starting compound (compound 1) is exclusively dietary, the intermediate compound (compound 2) can only originate from microbes, and the endpoint compound (compound 3) is exclusively host-derived. This represents a fully resolved diet-to-microbe-to-host metabolic chain.
+
+## {.tabset}
+
+### Pattern Visualization
+
+*Note:* Solid lines represent edge 1 (compound 1 → compound 2); dashed lines represent edge 2 (compound 2 → compound 3). Edge width reflects microbiome abundance. Node size reflects frequency. Node color indicates compound origin.
+
+```{r network-1}
+if (nrow(patterns1) > 0) {
+  plot_network_3node(patterns1,
+                     color_values = c("diet"      = "darkcyan",
+                                      "microbe"   = "gray50",
+                                      "microbediet" = "mediumpurple",
+                                      "host"      = "tomato",
+                                      "hostmicrobe" = "orange",
+                                      "hostdiet"  = "goldenrod",
+                                      "all"       = "forestgreen"))
+} else {
+  message("No patterns found for this query.")
+}
+```
+
+### KEGG Mapper of KOs
+
+*clusterProfiler* [1] is used to functionally profile KOs across both edges. Two standard outputs are shown:
+
+- **Bar plot:** bar length = number of KOs annotated to each enriched KEGG pathway; lighter color = stronger significance.
+- **Dot plot:** x-axis = gene ratio (KOs in pathway / total KOs); dot size = number of KOs; lighter color = stronger significance.
+
+```{r kegg-1}
+if (nrow(patterns1) > 0) {
+  all_kos <- c(patterns1$edge1_KOs, patterns1$edge2_KOs)
+  plot_kegg(all_kos)
+}
+```
+
+### Compounds x Food (Edge 1 Reactant)
+
+These plots show how the diet-origin starting compounds (compound 1) relate to specific food items and chemical taxonomy classes.
+
+```{r compounds-food-1}
+if (nrow(patterns1) > 0) {
+  plot_compounds_food(patterns1, hmdb,
+                      id_col   = "compound1_id",
+                      food_col = "compound1_assoc_food",
+                      freq_col = "compound1_freq")
+}
+```
+
+### Compounds x Genera (Edge 1)
+
+Microbial genera performing the first reaction (compound 1 → compound 2), broken down by the chemical taxonomy of compound 2.
+
+```{r genera-edge1-1}
+if (nrow(patterns1) > 0) {
+  plot_compounds_genera(patterns1, hmdb,
+                        id_col   = "compound2_id",
+                        org_col  = "edge1_organisms",
+                        abun_col = "edge1_m_abundance")
+}
+```
+
+### Compounds x Genera (Edge 2)
+
+Microbial genera performing the second reaction (compound 2 → compound 3), broken down by the chemical taxonomy of compound 3.
+
+```{r genera-edge2-1}
+if (nrow(patterns1) > 0) {
+  plot_compounds_genera(patterns1, hmdb,
+                        id_col   = "compound3_id",
+                        org_col  = "edge2_organisms",
+                        abun_col = "edge2_m_abundance")
+}
+```
+
+### Reactions x Genera (Edge 1)
+
+```{r rxn-genera-edge1-1}
+if (nrow(patterns1) > 0) {
+  plot_reactions_genera(patterns1, reactions,
+                        rxn_col  = "edge1_reaction",
+                        org_col  = "edge1_organisms",
+                        abun_col = "edge1_m_abundance")
+}
+```
+
+### Reactions x Genera (Edge 2)
+
+```{r rxn-genera-edge2-1}
+if (nrow(patterns1) > 0) {
+  plot_reactions_genera(patterns1, reactions,
+                        rxn_col  = "edge2_reaction",
+                        org_col  = "edge2_organisms",
+                        abun_col = "edge2_m_abundance")
+}
+```
+
+### Host Analysis
+
+**Endpoint origin distribution** — how often does the metabolic chain terminate in a host, microbiome, diet, or mixed-origin compound?
+
+```{r host-origin-1}
+if (nrow(patterns1) > 0) {
+  plot_endpoint_origins(patterns1)
+}
+```
+
+**Microbiome vs host abundance by reaction (edge 2)** — comparing how much activity is attributed to microbiome vs host for the second reaction step.
+
+```{r host-abun-compare-1}
+if (nrow(patterns1) > 0) {
+  plot_abundance_comparison(patterns1,
+                             rxn_col    = "edge2_reaction",
+                             m_abun_col = "edge2_m_abundance",
+                             h_abun_col = "edge2_h_abundance")
+}
+```
+
+**Host abundance heatmap by reaction and endpoint origin.**
+
+```{r host-heatmap-1}
+if (nrow(patterns1) > 0) {
+  plot_host_abundance_by_origin(patterns1,
+                                 rxn_col    = "edge2_reaction",
+                                 h_abun_col = "edge2_h_abundance",
+                                 origin_col = "compound3_origin")
+}
+```
+
+**Microbiome (edge 1) vs host (edge 2) abundance scatter**, coloured by endpoint origin. Points in the upper right represent pathways with high activity on both sides.
+
+```{r scatter-1}
+if (nrow(patterns1) > 0) {
+  plot_microbe_vs_host_scatter(patterns1)
+}
+```
+
+---
+
+## Least Restrictive Results: All Other Pattern Combinations
+
+All patterns that do not meet the strict diet → microbe → host criteria above. This aggregates chains where any of the three nodes has a mixed, shared, or alternative origin (e.g. microbediet, hostmicrobe, all).
+
+## {.tabset}
+
+### Pattern Visualization
+
+```{r network-2}
+if (nrow(patterns2) > 0) {
+  plot_network_3node(patterns2,
+                     color_values = c("diet"        = "darkcyan",
+                                      "microbe"     = "gray50",
+                                      "microbediet" = "mediumpurple",
+                                      "host"        = "tomato",
+                                      "hostmicrobe" = "orange",
+                                      "hostdiet"    = "goldenrod",
+                                      "all"         = "forestgreen"))
+} else {
+  message("No patterns found for this query.")
+}
+```
+
+### KEGG Mapper of KOs
+
+```{r kegg-2}
+if (nrow(patterns2) > 0) {
+  all_kos <- c(patterns2$edge1_KOs, patterns2$edge2_KOs)
+  plot_kegg(all_kos)
+}
+```
+
+### Compounds x Food (Edge 1 Reactant)
+
+```{r compounds-food-2}
+if (nrow(patterns2) > 0) {
+  plot_compounds_food(patterns2, hmdb,
+                      id_col   = "compound1_id",
+                      food_col = "compound1_assoc_food",
+                      freq_col = "compound1_freq")
+}
+```
+
+### Compounds x Genera (Edge 1)
+
+```{r genera-edge1-2}
+if (nrow(patterns2) > 0) {
+  plot_compounds_genera(patterns2, hmdb,
+                        id_col   = "compound2_id",
+                        org_col  = "edge1_organisms",
+                        abun_col = "edge1_m_abundance")
+}
+```
+
+### Compounds x Genera (Edge 2)
+
+```{r genera-edge2-2}
+if (nrow(patterns2) > 0) {
+  plot_compounds_genera(patterns2, hmdb,
+                        id_col   = "compound3_id",
+                        org_col  = "edge2_organisms",
+                        abun_col = "edge2_m_abundance")
+}
+```
+
+### Reactions x Genera (Edge 1)
+
+```{r rxn-genera-edge1-2}
+if (nrow(patterns2) > 0) {
+  plot_reactions_genera(patterns2, reactions,
+                        rxn_col  = "edge1_reaction",
+                        org_col  = "edge1_organisms",
+                        abun_col = "edge1_m_abundance")
+}
+```
+
+### Reactions x Genera (Edge 2)
+
+```{r rxn-genera-edge2-2}
+if (nrow(patterns2) > 0) {
+  plot_reactions_genera(patterns2, reactions,
+                        rxn_col  = "edge2_reaction",
+                        org_col  = "edge2_organisms",
+                        abun_col = "edge2_m_abundance")
+}
+```
+
+### Host Analysis
+
+```{r host-origin-2}
+if (nrow(patterns2) > 0) {
+  plot_endpoint_origins(patterns2)
+}
+```
+
+```{r host-abun-compare-2}
+if (nrow(patterns2) > 0) {
+  plot_abundance_comparison(patterns2,
+                             rxn_col    = "edge2_reaction",
+                             m_abun_col = "edge2_m_abundance",
+                             h_abun_col = "edge2_h_abundance")
+}
+```
+
+```{r host-heatmap-2}
+if (nrow(patterns2) > 0) {
+  plot_host_abundance_by_origin(patterns2,
+                                 rxn_col    = "edge2_reaction",
+                                 h_abun_col = "edge2_h_abundance",
+                                 origin_col = "compound3_origin")
+}
+```
+
+```{r scatter-2}
+if (nrow(patterns2) > 0) {
+  plot_microbe_vs_host_scatter(patterns2)
+}
+```
+
+---
+
+## References
+
+[1] Yu G, Wang L, Han Y and He Q. clusterProfiler: an R package for comparing biological themes among gene clusters. *OMICS: A Journal of Integrative Biology.* 2012, 16(5):284-287.
