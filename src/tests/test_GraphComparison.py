@@ -169,7 +169,9 @@ class TestGraphCompare(unittest.TestCase):
         result = gc.stat_test(pattern, metadata=metadata, group_col="group")
 
         # Check output
-        self.assertIn("p_value", str(result))
+        self.assertIn("pseudo_F", result)
+        self.assertIn("p_value", result)
+        self.assertIn("R2", result)
 
 
     def test_plotting(self):
