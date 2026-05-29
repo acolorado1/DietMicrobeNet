@@ -54,7 +54,7 @@ def get_graphs(paths: List[str], names: List[str]) -> Dict[str, pd.DataFrame]:
 
 
 def subset_graphs(graph_dict: Dict[str, pd.DataFrame]) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
-    """Split graph results into the three patterns used downstream.
+    """Split graph results into main pattern (diet->microbe) and the rest 
 
     Validates required columns exist; raises informative errors if not.
     """
@@ -64,15 +64,13 @@ def subset_graphs(graph_dict: Dict[str, pd.DataFrame]) -> Tuple[Dict[str, pd.Dat
             raise ValueError(f"Missing required columns in graph dataframe for sample '{name}'. Required: {required_cols}. Found: {set(df.columns)}")
 
     food_microbe = {}
-    food_both = {}
-    both_both = {}
+    least_restrictive = {}
 
     for name, df in graph_dict.items():
         food_microbe[name] = df[(df["compound1_origin"] == "food") & (df["compound2_origin"] == "microbe")]
-        food_both[name] = df[(df["compound1_origin"] == "food") & (df["compound2_origin"] == "both")]
-        both_both[name] = df[(df["compound1_origin"] == "both") & (df["compound2_origin"] == "both")]
-
-    return food_microbe, food_both, both_both
+        least_restrictive[name] = df[(df["compound1_origin"] != "food") & (df["compound2_origin"] != "microbe")]
+        
+    return food_microbe, least_restrictive
 
 
 def _safe_literal_eval(item):
@@ -427,14 +425,13 @@ def main():
     paths, names = csv_to_inputs(metadata=args.metadata, paths_col=args.paths, names_col=args.names)
 
     graphs_dict = get_graphs(paths=paths, names=names)
-    food_microbe_dict, food_both_dict, both_both_dict = subset_graphs(graph_dict=graphs_dict)
+    food_microbe_dict, least_restrictive_dict = subset_graphs(graph_dict=graphs_dict)
 
     food_microbe_kos = get_kos(food_microbe_dict, ko_column_name=args.ko_column)
-    food_both_kos = get_kos(food_both_dict, ko_column_name=args.ko_column)
-    both_both_kos = get_kos(both_both_dict, ko_column_name=args.ko_column)
+    rest_patterns_kos = get_kos(least_restrictive_dict, ko_column_name=args.ko_column)
 
-    patterns = [food_microbe_kos, food_both_kos, both_both_kos]
-    pattern_names = ["Food to Microbe", "Food to Both", "Both to Both"]
+    patterns = [food_microbe_kos, rest_patterns_kos]
+    pattern_names = ["Food to Microbe", "Least Restrictive Patterns"]
 
     groups = [g.strip() for g in args.groups.split(',') if g.strip()]
     for pat_dict, pat_name in zip(patterns, pattern_names):
