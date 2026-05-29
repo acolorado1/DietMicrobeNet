@@ -253,7 +253,7 @@ if FOODB:
             graph_res = "{dir}/output_fdb/graph/graph_results.csv",
             metabolome = "{dir}/metabolome.csv"
         output: 
-            output = "{dir}/output_fdb/MetabolomeComparison_Report.html"
+            output = "{dir}/output_fdb/"
         conda: "DMnet_env.yaml"
         shell: 
             """
@@ -433,7 +433,7 @@ if GENOME:
             graph_res = "{dir}/output_gen/graph/graph_results.csv",
             metabolome = "{dir}/metabolome.csv"
         output: 
-            output = "{dir}/output_gen/MetabolomeComparison_Report.html"
+            output = "{dir}/output_gen/"
         conda: "DMnet_env.yaml"
         shell: 
             """
@@ -606,7 +606,7 @@ if HOST:
             graph_res = "{dir}/output_host/graph/graph_results.csv",
             metabolome = "{dir}/metabolome.csv"
         output: 
-            output = "{dir}/output_host/MetabolomeComparison_Report.html"
+            output = "{dir}/output_host/"
         conda: "DMnet_env.yaml"
         shell: 
             """

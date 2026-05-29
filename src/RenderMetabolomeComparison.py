@@ -18,7 +18,7 @@ r_command = f'''
 Rscript -e "rmarkdown::render(
   input = '{rmd_path}',
   params = list(patterns = '{args.patterns}', metabolome = '{args.metabolome}'),
-  output_file = '{output_path}/MetabolomeComparison.html')"
+  output_file = '{output_path}/MetabolomeComparison_Report.html')"
 '''
 
 # Execute the R command
