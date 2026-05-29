@@ -6,172 +6,266 @@ params:
   metabolome: "metab_default.csv"
 ---
 
-```{css, echo=FALSE}
+```{css, echo=FALSE, purl=FALSE}
 h1, h2, h3, h4 {
   text-align: center;
 }
 ```
 
-```{r, setup, echo = F}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = T, echo = F, 
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = TRUE, echo = FALSE,
                       fig.align = "center")
 options(scipen = 999)
-```
 
-```{r, read packages}
 library(readr)
 library(dplyr)
+library(tidyverse)
 library(ggplot2)
 library(plotly)
 ```
 
-```{r, get data}
-# get data 
+```{r load-data}
 hmdb <- read_csv("../Data/hmdb.csv")
 colnames(hmdb)[1] <- "compound"
-hmdb_subset <- hmdb %>% select(compound, taxonomy_super_class, taxonomy_class)
-patterns <- read_csv(params$patterns)
+hmdb_subset <- hmdb %>%
+  dplyr::select(compound, taxonomy_super_class, taxonomy_class)
+
+patterns   <- read_csv(params$patterns)
 metabolome <- read_csv(params$metabolome)
+
+# ── Detect whether this is a 1-edge or 2-edge CSV ───────────────────────────
+# 1-edge CSVs have compound1_id / compound2_id
+# 2-edge CSVs additionally have compound3_id / edge2_* columns
+has_two_edges <- "compound3_id" %in% colnames(patterns)
 ```
 
-## Pattern Query 1 Results: Food to Microbe
+```{r helper-functions}
+# Collect all compound id+origin pairs present in a pattern subset.
+# Works for both 1-edge and 2-edge CSVs.
+get_compounds <- function(df) {
+  pairs <- list(
+    df %>%
+      dplyr::select(compound = compound1_id, origin = compound1_origin)
+  )
 
-Identifying compounds found in Food to Microbe patterns that were also found in the metabolome. 
+  if ("compound2_id" %in% colnames(df)) {
+    pairs[[2]] <- df %>%
+      dplyr::select(compound = compound2_id, origin = compound2_origin)
+  }
 
-## {.tabset} 
+  if (has_two_edges && "compound3_id" %in% colnames(df)) {
+    pairs[[3]] <- df %>%
+      dplyr::select(compound = compound3_id, origin = compound3_origin)
+  }
+
+  bind_rows(pairs) %>% distinct()
+}
+
+# Filter to metabolome-observed compounds, join taxonomy, and return.
+enrich_with_metabolome <- function(df) {
+  df %>%
+    filter(compound %in% metabolome$compound) %>%
+    left_join(hmdb_subset, by = "compound")
+}
+
+# Dot-matrix plots of compound count by origin × taxonomy level.
+plot_taxonomy_dots <- function(comp_orig) {
+  for (tax_level in c("taxonomy_super_class", "taxonomy_class")) {
+    label <- gsub("_", " ", str_to_title(tax_level))
+    p <- comp_orig %>%
+      count(origin, .data[[tax_level]]) %>%
+      ggplot(aes(y = .data[[tax_level]], x = origin)) +
+        geom_point(aes(color = n), size = 1) +
+        scale_color_gradient(low = "lightgrey", high = "purple4") +
+        theme_bw() +
+        xlab("Origin") +
+        ylab(label) +
+        labs(color = "Count")
+    print(p)
+  }
+}
+
+# Full tabset section for one pattern subset.
+# section_label  : displayed in the heading, e.g. "Diet → Microbe → Host"
+# description    : paragraph shown above the tabset
+render_section <- function(pattern_subset, section_label, description) {
+  comp_orig <- get_compounds(pattern_subset) %>%
+    enrich_with_metabolome()
+
+  n_shared <- n_distinct(comp_orig$compound)
+
+  cat(sprintf("\n\n## %s\n\n", section_label))
+  cat(description, "\n\n")
+
+  if (n_shared == 0) {
+    cat(
+      "> **No compounds from this pattern set were detected in the metabolome.**\n\n"
+    )
+    return(invisible(NULL))
+  }
+
+  cat(sprintf(
+    "*%d unique compound(s) from this pattern set were also detected in the metabolome.*\n\n",
+    n_shared
+  ))
+
+  cat("## {.tabset}\n\n")
+
+  # Tab 1: taxonomy summary
+  cat("### Compound Taxonomy Summary\n\n")
+  cat("```{r, echo=FALSE}\n")  # placeholder — actual plots rendered below
+  cat("```\n\n")
+  plot_taxonomy_dots(comp_orig)
+
+  # Tab 2: compound list
+  cat("\n\n### List of Shared Compounds\n\n")
+  print(
+    comp_orig %>%
+      dplyr::select(compound, origin) %>%
+      distinct() %>%
+      arrange(origin, compound),
+    n = Inf
+  )
+}
+```
+
+This report cross-references compounds found in graph query pattern results against an observed metabolome. Only compounds present in both datasets are shown. Taxonomy annotations are drawn from the HMDB reference.
+
+```{r split-patterns}
+# ── Most restrictive ─────────────────────────────────────────────────────────
+# 1-edge:  compound1 origin = diet  AND  compound2 origin = microbe
+# 2-edge:  additionally compound3 origin = host
+if (has_two_edges) {
+  patterns_strict <- patterns %>%
+    filter(compound1_origin == "diet" &
+           compound2_origin == "microbe" &
+           compound3_origin == "host")
+} else {
+  patterns_strict <- patterns %>%
+    filter(compound1_origin == "food" &
+           compound2_origin == "microbe")
+}
+
+# ── Least restrictive ────────────────────────────────────────────────────────
+# Everything that does NOT satisfy the strict criteria above
+patterns_loose <- patterns %>%
+  anti_join(patterns_strict,
+            by = intersect(colnames(patterns_strict), colnames(patterns)))
+```
+
+---
+
+## Most Restrictive Results: `r if (has_two_edges) "Diet → Microbe → Host" else "Food → Microbe"`
+
+`r if (has_two_edges) "Patterns where the starting compound is exclusively dietary, the intermediate compound is exclusively microbial, and the endpoint compound is exclusively host-derived — the most resolved diet-to-microbe-to-host metabolic chain." else "Patterns where the starting compound is exclusively from food and the product compound exclusively originates from microbes."`
+
+## {.tabset}
 
 ### Compound Taxonomy Summary
 
-```{r, pattern1 summary}
-# get only food to microbe patterns 
-patterns1 <- patterns %>% 
-  filter(compound1_origin == "food" & compound2_origin == "microbe")
+```{r strict-taxonomy}
+comp_strict <- get_compounds(patterns_strict) %>% enrich_with_metabolome()
 
-# get list of compounds and their origin & add taxonomy information
-comp1 <- patterns1 %>% select(compound1_id, compound1_origin) %>%  rename("compound" = compound1_id, "origin" = compound1_origin)
-comp2 <- patterns1 %>% select(compound2_id, compound2_origin) %>%  rename("compound" = compound2_id, "origin" = compound2_origin)
-comp_orig <- rbind(comp1, comp2)
-comp_orig <- comp_orig %>% 
-  filter(compound %in% metabolome$compound) %>% 
-  left_join(hmdb_subset, by = "compound") 
-
-# plot compound taxonomy and color by origin 
-comp_orig %>% 
-  count(origin, taxonomy_super_class) %>% 
-  ggplot(aes(y=taxonomy_super_class, x=origin)) +
-    geom_point(aes(color = n), size = 1) + 
-    scale_color_gradient(low = "lightgrey", high = "purple4") +
-    theme_bw() + 
-    xlab("Origin") + 
-    ylab("Taxonomy Super Class")
-
-comp_orig %>% 
-  count(origin, taxonomy_class) %>% 
-  ggplot(aes(y=taxonomy_class, x=origin)) +
-    geom_point(aes(color = n), size = 1) + 
-    scale_color_gradient(low = "lightgrey", high = "purple4") +
-    theme_bw() + 
-    xlab("Origin") + 
-    ylab("Taxonomy Class")
+if (nrow(comp_strict) == 0) {
+  cat("> **No compounds from this pattern set were detected in the metabolome.**\n")
+} else {
+  plot_taxonomy_dots(comp_strict)
+}
 ```
 
-### List of Shared Compounds 
+### List of Shared Compounds
 
-```{r, pattern1 list}
-print(comp_orig %>% select(compound, origin), n = nrow(comp_orig))
+```{r strict-list}
+if (nrow(comp_strict) > 0) {
+  print(
+    comp_strict %>%
+      dplyr::select(compound, origin) %>%
+      distinct() %>%
+      arrange(origin, compound),
+    n = Inf
+  )
+}
 ```
 
-## Pattern Query 2 Results: Food to Both
+---
 
-Identifying compounds found in Food to Both patterns that were also found in the metabolome. 
+## Least Restrictive Results: All Other Patterns
 
-## {.tabset} 
+All pattern combinations that do not satisfy the most restrictive criteria above. This aggregates chains where any node has a mixed, shared, or alternative origin (e.g. `microbediet`, `hostmicrobe`, `all`, `both`).
+
+## {.tabset}
 
 ### Compound Taxonomy Summary
 
-```{r, pattern2 summary}
-# get only food to microbe patterns 
-patterns2 <- patterns %>% 
-  filter(compound1_origin == "food" & compound2_origin == "both")
+```{r loose-taxonomy}
+comp_loose <- get_compounds(patterns_loose) %>% enrich_with_metabolome()
 
-# get list of compounds and their origin & add taxonomy information
-comp1 <- patterns2 %>% select(compound1_id, compound1_origin) %>%  rename("compound" = compound1_id, "origin" = compound1_origin)
-comp2 <- patterns2 %>% select(compound2_id, compound2_origin) %>%  rename("compound" = compound2_id, "origin" = compound2_origin)
-comp_orig <- rbind(comp1, comp2)
-comp_orig <- comp_orig %>% 
-  filter(compound %in% metabolome$compound) %>% 
-  left_join(hmdb_subset, by = "compound") 
-
-# plot compound taxonomy and color by origin 
-comp_orig %>% 
-  count(origin, taxonomy_super_class) %>% 
-  ggplot(aes(y=taxonomy_super_class, x=origin)) +
-    geom_point(aes(color = n), size = 1) + 
-    scale_color_gradient(low = "lightgrey", high = "purple4") +
-    theme_bw() + 
-    xlab("Origin") + 
-    ylab("Taxonomy Super Class")
-
-comp_orig %>% 
-  count(origin, taxonomy_class) %>% 
-  ggplot(aes(y=taxonomy_class, x=origin)) +
-    geom_point(aes(color = n), size = 1) + 
-    scale_color_gradient(low = "lightgrey", high = "purple4") +
-    theme_bw() + 
-    xlab("Origin") + 
-    ylab("Taxonomy Class")
+if (nrow(comp_loose) == 0) {
+  cat("> **No compounds from this pattern set were detected in the metabolome.**\n")
+} else {
+  plot_taxonomy_dots(comp_loose)
+}
 ```
 
-### List of Shared Compounds 
+### List of Shared Compounds
 
-```{r, pattern2 list}
-print(comp_orig %>% select(compound, origin), n = nrow(comp_orig))
+```{r loose-list}
+if (nrow(comp_loose) > 0) {
+  print(
+    comp_loose %>%
+      dplyr::select(compound, origin) %>%
+      distinct() %>%
+      arrange(origin, compound),
+    n = Inf
+  )
+}
 ```
 
-## Pattern Query 3 Results: Both to Both
+---
 
-Identifying compounds found in Both to Both patterns that were also found in the metabolome. 
+## Combined Overview
 
-## {.tabset} 
+Summary across both pattern sets showing how many metabolome-observed compounds each captures, and their overlap.
 
-### Compound Taxonomy Summary
+```{r combined-summary}
+strict_ids <- comp_strict %>% pull(compound) %>% unique()
+loose_ids  <- comp_loose  %>% pull(compound) %>% unique()
 
-```{r, pattern3 summary}
-# get only food to microbe patterns 
-patterns3 <- patterns %>% 
-  filter(compound1_origin == "both" & compound2_origin == "both")
+both_ids   <- intersect(strict_ids, loose_ids)
+only_strict <- setdiff(strict_ids, loose_ids)
+only_loose  <- setdiff(loose_ids,  strict_ids)
 
-# get list of compounds and their origin & add taxonomy information
-comp1 <- patterns3 %>% select(compound1_id, compound1_origin) %>%  rename("compound" = compound1_id, "origin" = compound1_origin)
-comp2 <- patterns3 %>% select(compound2_id, compound2_origin) %>%  rename("compound" = compound2_id, "origin" = compound2_origin)
-comp_orig <- rbind(comp1, comp2)
-comp_orig <- comp_orig %>% 
-  filter(compound %in% metabolome$compound) %>% 
-  left_join(hmdb_subset, by = "compound") 
+summary_df <- tibble(
+  Category = c(
+    "Most restrictive only",
+    "Least restrictive only",
+    "In both pattern sets",
+    "Total unique"
+  ),
+  `Compound count` = c(
+    length(only_strict),
+    length(only_loose),
+    length(both_ids),
+    length(union(strict_ids, loose_ids))
+  )
+)
 
-# plot compound taxonomy and color by origin 
-comp_orig %>% 
-  count(origin, taxonomy_super_class) %>% 
-  ggplot(aes(y=taxonomy_super_class, x=origin)) +
-    geom_point(aes(color = n), size = 1) + 
-    scale_color_gradient(low = "lightgrey", high = "purple4") +
-    theme_bw() + 
-    xlab("Origin") + 
-    ylab("Taxonomy Super Class")
-
-comp_orig %>% 
-  count(origin, taxonomy_class) %>% 
-  ggplot(aes(y=taxonomy_class, x=origin)) +
-    geom_point(aes(color = n), size = 1) + 
-    scale_color_gradient(low = "lightgrey", high = "purple4") +
-    theme_bw() + 
-    xlab("Origin") + 
-    ylab("Taxonomy Class")
+knitr::kable(summary_df, align = "lr")
 ```
 
-### List of Shared Compounds 
-
-```{r, pattern3 list}
-print(comp_orig %>% select(compound, origin) %>% distinct(), n = nrow(comp_orig))
+```{r venn-bar}
+# Stacked bar showing compound set membership by origin
+bind_rows(
+  comp_strict %>% mutate(pattern_set = "Most restrictive"),
+  comp_loose  %>% mutate(pattern_set = "Least restrictive")
+) %>%
+  distinct(compound, origin, pattern_set) %>%
+  count(pattern_set, origin) %>%
+  ggplot(aes(x = pattern_set, y = n, fill = origin)) +
+    geom_bar(stat = "identity", position = "stack") +
+    theme_bw() +
+    xlab("Pattern Set") +
+    ylab("Number of Compounds") +
+    labs(fill = "Origin") +
+    scale_fill_brewer(palette = "Set2")
 ```
-

@@ -14,6 +14,7 @@ def main():
     parser.add_argument("--foodb", action="store_true", help="Enable foodb based analysis")
     parser.add_argument("--genome", action="store_true", help="Enable genome based analysis")
     parser.add_argument("--host", action="store_true", help="Enable host based analysis")
+    parser.add_argument("--metabolome", action="store_true", help="Include if comparison to known metabolome is wanted")
     parser.add_argument("--e-weights", action="store_true", help="Enable edge weights: read abundance")
     parser.add_argument("--n-weights", action="store_true", help="Enable node weights: food frequency")
     parser.add_argument("--include-orgs", action="store_true", help="Include organisms")
@@ -42,6 +43,7 @@ def main():
         "foodb": args.foodb,
         "genome": args.genome,
         "host": args.host,
+        "metabolome": args.metabolome,
         "e_weights": args.e_weights,
         "n_weights": args.n_weights,
         "include_orgs": args.include_orgs,
