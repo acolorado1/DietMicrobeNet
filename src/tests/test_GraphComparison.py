@@ -102,11 +102,10 @@ class TestGraphCompare(unittest.TestCase):
             names_col="names"
         )
         graph_dict = gc.get_graphs(paths, names)
-        fm, fb, bb = gc.subset_graphs(graph_dict)
-        # all 4 graphs have at least one FM/FB/BB entry
+        fm, rest = gc.subset_graphs(graph_dict)
+        # all 4 graphs have at least one FM/rest entry
         self.assertTrue(len(fm) > 0)
-        self.assertTrue(len(fb) > 0)
-        self.assertTrue(len(bb) > 0)
+        self.assertTrue(len(rest) > 0)
 
     def test_get_kos(self):
         paths, names = gc.csv_to_inputs(
@@ -114,7 +113,7 @@ class TestGraphCompare(unittest.TestCase):
             names_col="names"
         )
         graph_dict = gc.get_graphs(paths, names)
-        fm, _, _ = gc.subset_graphs(graph_dict)
+        fm, _ = gc.subset_graphs(graph_dict)
         kos_dict = gc.get_kos(fm)
 
         first_sample = list(kos_dict.keys())[0]

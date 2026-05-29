@@ -6,20 +6,17 @@ params:
   reactions: "rxn_default.csv"
 ---
 
-```{css, echo=FALSE}
+```{css, echo=FALSE, purl=FALSE}
 h1, h2, h3, h4 {
   text-align: center;
 }
 ```
 
-```{r, setup, echo = F}
-knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = T, echo = F, 
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = TRUE, echo = FALSE,
                       fig.align = "center")
 options(scipen = 999)
-```
 
-```{r}
-# load necessary packages 
 library(readr)
 library(dplyr)
 library(tidyverse)
@@ -34,726 +31,295 @@ library(org.Hs.eg.db)
 library(KEGGREST)
 ```
 
-This report is built on data found in the `/graph/graph_results.csv` that is generated when patterns are queried for in Neo4j. Three queries are performed to look for three different patterns of potential dietary metabolism. **(1) food to microbe:** where compounds known to only originate from food are used in a reaction performed by microbes whose resulting products only originate from microbes; **(2) food to both:** where compounds known to only originate from food are used in a reaction performed by microbes whose resulting products can originate from BOTH food and microbes; **(3) both to both:** where compounds that can originate from BOTH food and microbes are used in a reaction performed by microbes whose resulting products can originated from BOTH food and microbes.
-
-```{r}
-# get data 
+```{r load-data}
 hmdb <- read_csv("../Data/hmdb.csv")
 colnames(hmdb)[1] <- "compound"
-patterns <- read_csv(params$patterns)
+patterns  <- read_csv(params$patterns)
 reactions <- read_json(params$reactions)
-
 ```
 
-## Pattern Query 1 Results: Food to Microbe
+```{r helper-functions}
+# Build igraph nodes + edges and render ggraph
+plot_network <- function(df, color_values) {
+  c1 <- df %>%
+    dplyr::select(compound1_id, compound1_origin, compound1_assoc_food, compound1_freq) %>%
+    setNames(c("compound", "origin", "assoc_food", "freq"))
 
-The results of this query are the instances where we know that the reactant used in a reaction could only come from a food item, and the resulting product can only come from a microbe.
+  c2 <- df %>%
+    dplyr::select(compound2_id, compound2_origin, compound2_assoc_food, compound2_freq) %>%
+    setNames(c("compound", "origin", "assoc_food", "freq"))
 
-```{r}
-patterns1 <- patterns %>% 
+  nodes <- rbind(c1, c2) %>%
+    distinct(compound, .keep_all = TRUE) %>%
+    mutate(freq = replace_na(freq, 0),
+           scaled_freq = rescale(freq, to = c(0, 20)))
+
+  edges <- df %>%
+    dplyr::select(compound1_id, compound2_id, reaction, KOs, organisms, abundance) %>%
+    mutate(scaled_abundance = rescale(abundance, to = c(0, 1)))
+
+  net <- graph_from_data_frame(d = edges, vertices = nodes, directed = TRUE)
+
+  ggraph(net, layout = "fr") +
+    geom_edge_link(aes(width = scaled_abundance),
+                   arrow = arrow(length = unit(4, "mm"), type = "closed"),
+                   end_cap = circle(1, "mm"),
+                   show.legend = FALSE) +
+    geom_node_point(aes(size = scaled_freq, color = origin)) +
+    scale_color_manual(values = color_values) +
+    scale_size(guide = "none") +
+    geom_node_label(aes(label = name), repel = TRUE, size = 3) +
+    theme_void()
+}
+
+# Run KEGG enrichment and plot; returns silently if no pathways found
+plot_kegg <- function(df) {
+  ko_list <- lapply(str_extract_all(df$KOs, "K\\d{5}"), unlist)
+  all_kos  <- unique(unlist(ko_list))
+
+  ekegg <- tryCatch(
+    enrichKEGG(gene = all_kos, organism = "ko", keyType = "kegg"),
+    error = function(e) {
+      message("enrichKEGG failed: ", e$message)
+      NULL
+    }
+  )
+
+  if (is.null(ekegg) || nrow(as.data.frame(ekegg)) == 0) {
+    message("No significantly enriched KEGG pathways found.")
+    return(invisible(NULL))
+  }
+
+  print(barplot(ekegg, showCategory = 10))
+  print(dotplot(ekegg))
+}
+
+# Compounds x Food plots
+plot_compounds_food <- function(df, hmdb) {
+  food_compounds <- df %>%
+    dplyr::select(compound1_id, compound1_assoc_food, compound1_freq) %>%
+    mutate(compound1_assoc_food = gsub("\\[|\\]|'", "", compound1_assoc_food)) %>%
+    separate_rows(compound1_assoc_food, sep = ",") %>%
+    mutate(compound1_assoc_food = str_trim(compound1_assoc_food))
+
+  food_compounds %>%
+    group_by(compound1_assoc_food) %>%
+    summarise(n_compounds = n_distinct(compound1_id)) %>%
+    ggplot(aes(x = n_compounds, y = reorder(compound1_assoc_food, n_compounds))) +
+      geom_bar(stat = "identity") +
+      theme_bw() +
+      xlab("Number of Compounds") +
+      ylab(" ") %>%
+    print()
+
+  food_compounds <- food_compounds %>%
+    rename(compound = compound1_id) %>%
+    left_join(hmdb, by = "compound")
+
+  for (tax_level in c("taxonomy_super_class", "taxonomy_class")) {
+    food_compounds %>%
+      dplyr::select(compound, all_of(tax_level), compound1_assoc_food) %>%
+      group_by(compound1_assoc_food, .data[[tax_level]]) %>%
+      summarise(n_compounds = n_distinct(compound), .groups = "drop") %>%
+      ggplot(aes(x = compound1_assoc_food, y = .data[[tax_level]], fill = n_compounds)) +
+        geom_tile() +
+        theme_bw() +
+        scale_y_discrete(labels = label_wrap(width = 15)) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+        xlab(" ") +
+        ylab(gsub("_", " ", str_to_title(tax_level))) +
+        labs(fill = "Number of \nCompounds") %>%
+      print()
+  }
+}
+
+# Compounds x Genera plots (returns p2, p3 as plotly)
+plot_compounds_genera <- function(df, hmdb) {
+  microbe_compounds <- df %>%
+    dplyr::select(compound2_id, organisms, abundance) %>%
+    mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%
+    separate_rows(organisms, sep = ",") %>%
+    mutate(organisms = str_trim(organisms)) %>%
+    separate_wider_delim(organisms, delim = ".", names = c("genus", "species"),
+                         too_few = "align_start", too_many = "merge", cols_remove = FALSE)
+
+  microbe_compounds %>%
+    group_by(genus) %>%
+    summarise(n_compounds = n_distinct(compound2_id)) %>%
+    ggplot(aes(x = n_compounds, y = reorder(genus, n_compounds))) +
+      geom_bar(stat = "identity") +
+      theme_bw() +
+      xlab("Number of Compounds") +
+      ylab(" ") %>%
+    print()
+
+  microbe_compounds <- microbe_compounds %>%
+    rename(compound = compound2_id) %>%
+    left_join(hmdb, by = "compound")
+
+  make_tile <- function(tax_level) {
+    microbe_compounds %>%
+      dplyr::select(compound, all_of(tax_level), genus) %>%
+      group_by(genus, .data[[tax_level]]) %>%
+      summarise(n_compounds = n_distinct(compound), .groups = "drop") %>%
+      ggplot(aes(y = genus, x = .data[[tax_level]], fill = n_compounds)) +
+        geom_tile() +
+        theme_bw() +
+        scale_y_discrete(labels = label_wrap(width = 15)) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+        ylab(" ") +
+        xlab(gsub("_", " ", str_to_title(tax_level))) +
+        labs(fill = "Number of \nCompounds")
+  }
+
+  plotly::ggplotly(make_tile("taxonomy_super_class"))
+  plotly::ggplotly(make_tile("taxonomy_class"))
+}
+
+# Reactions x Genera heatmap
+plot_reactions_genera <- function(df, reactions) {
+  reaction_names <- sapply(df$reaction, function(r) {
+    name <- reactions[[r]]$NAME
+    if (is.null(name)) "unnamed" else name
+  })
+
+  reaction_df <- data.frame(reaction = df$reaction, reaction_name = reaction_names)
+
+  p <- df %>%
+    left_join(reaction_df, by = "reaction") %>%
+    dplyr::select(reaction, organisms, abundance, reaction_name) %>%
+    mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%
+    separate_rows(organisms, sep = ",") %>%
+    mutate(organisms = str_trim(organisms)) %>%
+    separate_wider_delim(organisms, delim = ".", names = c("genus", "species"),
+                         too_few = "align_start", too_many = "merge", cols_remove = FALSE) %>%
+    dplyr::select(genus, abundance, reaction_name) %>%
+    group_by(genus, reaction_name) %>%
+    summarise(s_abundance = sum(abundance), .groups = "drop") %>%
+    ggplot(aes(y = reaction_name, x = genus, fill = s_abundance)) +
+      geom_tile() +
+      theme_bw() +
+      scale_y_discrete(labels = label_wrap(width = 15)) +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+      xlab(" ") +
+      ylab("Reaction") +
+      labs(fill = "Abundance")
+
+  plotly::ggplotly(p)
+}
+```
+
+This report is built on data found in `/graph/graph_results.csv`, generated when patterns of interest are searched for. Three queries are performed to look for three different patterns of potential dietary metabolism:
+
+- **(1) food to microbe:** compounds known to only originate from food are used in a microbial reaction whose products only originate from microbes
+- **(2) food to both:** compounds known to only originate from food are used in a microbial reaction whose products can originate from both food and microbes
+- **(3) both to both:** compounds that can originate from both food and microbes are used in a microbial reaction whose products can also originate from both
+
+This report is divided into two sections: **(1) Most Restrictive Results** (food to microbe patterns only) and **(2) Least Restrictive Results** (food to both and both to both patterns combined).
+
+```{r split-patterns}
+patterns1 <- patterns %>%
   filter(compound1_origin == "food" & compound2_origin == "microbe")
+
+# All patterns that are NOT the most restrictive (food -> microbe)
+patterns2 <- patterns %>%
+  filter(!(compound1_origin == "food" & compound2_origin == "microbe"))
 ```
 
-## {.tabset} 
+## Most Restrictive Results: Food to Microbe
 
-### Pattern Visualization 
+The results of this query show instances where the reactant used in a reaction could only come from a food item, and the resulting product can only come from a microbe.
 
-*Note*: some edges might represent the same reaction, for example: if reaction1 is reactant1 --> product1 + product2, the query will create two lines where reactant1 becomes product1 and reactant1 becomes product2; therefore, the graph will create an edge for each separate relationship. 
+## {.tabset}
 
-```{r}
-# creating nodes dataframe
-c1 <- patterns1 %>% 
-  dplyr::select(compound1_id, compound1_origin, 
-         compound1_assoc_food, compound1_freq)
-colnames(c1) <- c("compound", "origin", "assoc_food", "freq")
+### Pattern Visualization
 
-c2 <- patterns1 %>% 
-  dplyr::select(compound2_id, compound2_origin, 
-         compound2_assoc_food, compound2_freq)
-colnames(c2) <- c("compound", "origin", "assoc_food", "freq")
+*Note:* Some edges might represent the same reaction. For example, if reaction1 is `reactant1 --> product1 + product2`, the query creates two rows (reactant1 → product1 and reactant1 → product2), producing one edge per relationship in the graph.
 
-nodes <- rbind(c1, c2)
-nodes <- nodes %>% 
-  distinct(compound, .keep_all = T) 
-nodes$freq[is.na(nodes$freq)] <- 0
-nodes$scaled_freq <- rescale(nodes$freq, to = c(0, 20))
-
-# create edges dataframe 
-edges <- patterns1 %>%  
-  dplyr::select(compound1_id, compound2_id, reaction, KOs, organisms, abundance)
-edges$scaled_abundance <- rescale(edges$abundance, to = c(0, 1))
-
-net <- graph_from_data_frame(d=edges, vertices=nodes, directed=T) 
-ggraph(net, layout = "fr") +
-  geom_edge_link(aes(width = scaled_abundance), 
-                 arrow = arrow(length = unit(4, 'mm'), type = "closed"), 
-                 end_cap = circle(1, 'mm'), 
-                 show.legend = F) +
-  geom_node_point(aes(size = scaled_freq, color = origin)) +
-  scale_color_manual(values = c("microbe"="gray50", "food"="darkcyan")) +
-  scale_size(guide = "none") + 
-  geom_node_label(aes(label = name), 
-                 repel = TRUE,            
-                 size = 3) +
-  theme_void()
+```{r network-1}
+if (nrow(patterns1) > 0) {
+  plot_network(patterns1, color_values = c("microbe" = "gray50", "food" = "darkcyan"))
+} else {
+  message("No patterns found for this query.")
+}
 ```
 
+### KEGG Mapper of KOs
 
-### KEGG Mapper of KOs 
+*clusterProfiler* [1] is used to functionally profile the KEGG Orthologs (KOs) involved in these reactions. Two standard outputs are shown:
 
-*clusterProfiler[1]* is the package used to functionally profile the KOs involved in these reactions (edges), and it has two standard outputs. In the bar plot, each bar represents a significantly enriched KEGG pathway, and the x-axis is the number of KOs annotated to that pathway. To interpret this plot, the longer the bars the more KOs that mapped to that pathway and the lighter the color the more statistically significant the enrichment was. In the dot plot, there is an added dimension. The y-axis is also the pathway name, the x-axis is the gene ratio (proportion of KOs in pathway over total KOs), dot size is the number of KOs in that pathway (like bar length in the bar plot), and dot color is significance level. To interpret this plot, the father to the right a dot shows up the higher the proportion of genes in that pathway, the larger the dots are the more total genes that are involved in that pathway, and the lighter the color the stronger the significance. 
+- **Bar plot:** each bar is a significantly enriched KEGG pathway; bar length = number of KOs annotated to that pathway; lighter color = stronger statistical significance.
+- **Dot plot:** adds a gene ratio dimension (x-axis = proportion of KOs in pathway / total KOs); dot size = number of KOs in pathway; lighter color = stronger significance.
 
-```{r}
-library(clusterProfiler)
-library(KEGGREST)
-
-ko_column <- patterns1$KOs
-ko_list <- lapply(str_extract_all(ko_column, "K\\d{5}"), unlist)
-all_kos <- unique(unlist(ko_list))
-
-# Map KOs to KEGG pathways
-ko2pathway <- keggLink("pathway", "ko")
-pathway2name <- keggList("pathway")
-
-# Filter only pathways relevant to your KOs
-mapped_pathways <- ko2pathway[names(ko2pathway) %in% paste0("ko:", all_kos)]
-
-# Perform KEGG pathway enrichment
-ekegg <- enrichKEGG(gene = all_kos,
-                    organism = "ko",  # for KO-level (universal)
-                    keyType = "kegg")
-# Visualize
-barplot(ekegg, showCategory = 10)
-dotplot(ekegg)
-
+```{r kegg-1}
+if (nrow(patterns1) > 0) plot_kegg(patterns1)
 ```
 
 ### Compounds x Food
 
-```{r}
-food_compounds <- patterns1 %>% 
-  dplyr::select(compound1_id, compound1_assoc_food, compound1_freq) %>% 
-  mutate(compound1_assoc_food = gsub("\\[|\\]|'", "", compound1_assoc_food)) %>%  # remove [], '
-  separate_rows(compound1_assoc_food, sep = ",")  # split into multiple rows
-food_compounds$compound1_assoc_food <- stringr::str_trim(food_compounds$compound1_assoc_food)
-
-food_compounds %>% 
-  group_by(compound1_assoc_food) %>% 
-  summarise(n_compounds = n_distinct(compound1_id)) %>% 
-  ggplot(aes(x = n_compounds, y = reorder(compound1_assoc_food, n_compounds))) + 
-    geom_bar(stat = "identity") + 
-    theme_bw() +
-    xlab("Number of Compounds") + 
-    ylab(" ")
-
-colnames(food_compounds)[1] <- "compound"
-food_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_super_class, compound1_assoc_food) %>% 
-  group_by(compound1_assoc_food, taxonomy_super_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(x=compound1_assoc_food, y = taxonomy_super_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Taxonomy Super Class") + 
-    labs(fill = "Number of \nCompounds")
-
-food_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_class, compound1_assoc_food) %>% 
-  group_by(compound1_assoc_food, taxonomy_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(x=compound1_assoc_food, y = taxonomy_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Taxonomy Class") + 
-    labs(fill = "Number of \nCompounds")
+```{r compounds-food-1}
+if (nrow(patterns1) > 0) plot_compounds_food(patterns1, hmdb)
 ```
 
 ### Compounds x Genera
 
-```{r}
-microbe_compounds <- patterns1 %>% 
-  dplyr::select(compound2_id, organisms, abundance) %>% 
-  mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%  # remove [], '
-  separate_rows(organisms, sep = ",")  # split into multiple rows
-microbe_compounds$organisms <- stringr::str_trim(microbe_compounds$organisms)
-microbe_compounds <- microbe_compounds %>% 
-  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
-                       too_few = "align_start", too_many = "merge", cols_remove = F)
-
-microbe_compounds %>% 
-  group_by(genus) %>% 
-  summarise(n_compounds = n_distinct(compound2_id)) %>% 
-  ggplot(aes(x = n_compounds, y = reorder(genus, n_compounds))) + 
-    geom_bar(stat = "identity") + 
-    theme_bw() +
-    xlab("Number of Compounds") + 
-    ylab(" ") 
-
-colnames(microbe_compounds)[1] <- "compound"
-microbe_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_super_class, genus) %>% 
-  group_by(genus, taxonomy_super_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(y=genus, x = taxonomy_super_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ylab(" ") + 
-    xlab("Taxonomy Super Class") + 
-    labs(fill = "Number of \nCompounds") -> p2
-
-microbe_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_class, genus) %>% 
-  group_by(genus, taxonomy_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(y=genus, x = taxonomy_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ylab(" ") + 
-    xlab("Taxonomy Class") + 
-    labs(fill = "Number of \nCompounds") -> p3
+```{r compounds-genera-1}
+if (nrow(patterns1) > 0) plot_compounds_genera(patterns1, hmdb)
 ```
 
-```{r}
-plotly::ggplotly(p2)
+### Reactions x Genera
+
+```{r reactions-genera-1}
+if (nrow(patterns1) > 0) plot_reactions_genera(patterns1, reactions)
 ```
 
-```{r}
-plotly::ggplotly(p3)
-```
+## Least Restrictive Results: Food to Both & Both to Both
 
-### Reactions x Genera 
+## {.tabset}
 
-```{r}
-# create dataframe with reactions and their name from json 
-reactions_list <- patterns1$reaction
-names <- c()
-for (reaction in reactions_list){
-  name <- reactions[[reaction]]$NAME
-  if (is.null(name)){
-    name <- "unnamed"
-  }
-  names <- c(names, name) 
+### Pattern Visualization
+
+*Note:* Some edges might represent the same reaction. For example, if reaction1 is `reactant1 --> product1 + product2`, the query creates two rows (reactant1 → product1 and reactant1 → product2), producing one edge per relationship in the graph.
+
+```{r network-2}
+if (nrow(patterns2) > 0) {
+  plot_network(patterns2, color_values = c("both" = "gray50", "food" = "darkcyan"))
+} else {
+  message("No patterns found for this query.")
 }
-
-if (length(reactions_list) == length(names)){ # sanity check to make sure lists are of same length
-  reaction_df <- data.frame(reaction = reactions_list, 
-                            reaction_name = names)
-}
-
-# merge reaction names and create plots 
-microbes_reactions <- patterns1 %>% 
-  left_join(reaction_df, by = "reaction") %>% 
-  dplyr::select(reaction, organisms, abundance, reaction_name) %>% 
-  mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%  # remove [], '
-  separate_rows(organisms, sep = ",")  # split into multiple rows
-microbes_reactions$organisms <- stringr::str_trim(microbes_reactions$organisms)
-microbes_reactions <- microbes_reactions %>% 
-  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
-                       too_few = "align_start", too_many = "merge", cols_remove = F)
-
-microbes_reactions %>% 
-  dplyr::select(genus, abundance, reaction_name) %>% 
-  group_by(genus, reaction_name) %>% 
-  summarise(s_abundance = sum(abundance)) %>% 
-  ggplot(aes(y = reaction_name, x = genus, fill = s_abundance)) + 
-    geom_tile() + 
-    theme_bw() + 
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Reaction") + 
-    labs(fill = "Abundance") -> p 
-
-plotly::ggplotly(p)
 ```
 
-## Pattern Query 2 Results: Food to Both
+### KEGG Mapper of KOs
 
-The results of this query are the instances where we know that the reactant used in a reaction could only come from a food item, and the resulting product can come from BOTH the food and the microbes.
+*clusterProfiler* [1] is used to functionally profile the KEGG Orthologs (KOs) involved in these reactions. Two standard outputs are shown:
 
-```{r}
-patterns2 <- patterns %>% 
-  filter(compound1_origin == "food" & compound2_origin == "both")
-```
+- **Bar plot:** each bar is a significantly enriched KEGG pathway; bar length = number of KOs annotated to that pathway; lighter color = stronger statistical significance.
+- **Dot plot:** adds a gene ratio dimension (x-axis = proportion of KOs in pathway / total KOs); dot size = number of KOs in pathway; lighter color = stronger significance.
 
-## {.tabset} 
-
-### Pattern Visualization 
-
-*Note*: some edges might represent the same reaction, for example: if reaction1 is reactant1 --> product1 + product2, the query will create two lines where reactant1 becomes product1 and reactant1 becomes product2; therefore, the graph will create an edge for each separate relationship. 
-
-```{r}
-# creating nodes dataframe
-c1 <- patterns2 %>% 
-  dplyr::select(compound1_id, compound1_origin, 
-         compound1_assoc_food, compound1_freq)
-colnames(c1) <- c("compound", "origin", "assoc_food", "freq")
-
-c2 <- patterns2 %>% 
-  dplyr::select(compound2_id, compound2_origin, 
-         compound2_assoc_food, compound2_freq)
-colnames(c2) <- c("compound", "origin", "assoc_food", "freq")
-
-nodes <- rbind(c1, c2)
-nodes <- nodes %>% 
-  distinct(compound, .keep_all = T) 
-nodes$freq[is.na(nodes$freq)] <- 0
-nodes$scaled_freq <- rescale(nodes$freq, to = c(0, 20))
-
-# create edges dataframe 
-edges <- patterns2 %>%  
-  dplyr::select(compound1_id, compound2_id, reaction, KOs, organisms, abundance)
-edges$scaled_abundance <- rescale(edges$abundance, to = c(0, 1))
-
-net <- graph_from_data_frame(d=edges, vertices=nodes, directed=T) 
-ggraph(net, layout = "fr") +
-  geom_edge_link(aes(width = scaled_abundance), 
-                 arrow = arrow(length = unit(4, 'mm'), type = "closed"), 
-                 end_cap = circle(1, 'mm'), 
-                 show.legend = F) +
-  geom_node_point(aes(size = scaled_freq, color = origin)) +
-  scale_color_manual(values = c("both"="gray50", "food"="darkcyan")) +
-  scale_size(guide = "none") + 
-  geom_node_label(aes(label = name), 
-                 repel = TRUE,            
-                 size = 3) +
-  theme_void()
-```
-
-
-### KEGG Mapper of KOs 
-
-*clusterProfiler[1]* is the package used to functionally profile the KOs involved in these reactions (edges), and it has two standard outputs. In the bar plot, each bar represents a significantly enriched KEGG pathway, and the x-axis is the number of KOs annotated to that pathway. To interpret this plot, the longer the bars the more KOs that mapped to that pathway and the lighter the color the more statistically significant the enrichment was. In the dot plot, there is an added dimension. The y-axis is also the pathway name, the x-axis is the gene ratio (proportion of KOs in pathway over total KOs), dot size is the number of KOs in that pathway (like bar length in the bar plot), and dot color is significance level. To interpret this plot, the father to the right a dot shows up the higher the proportion of genes in that pathway, the larger the dots are the more total genes that are involved in that pathway, and the lighter the color the stronger the significance. 
-
-```{r}
-library(clusterProfiler)
-library(KEGGREST)
-
-ko_column <- patterns2$KOs
-ko_list <- lapply(str_extract_all(ko_column, "K\\d{5}"), unlist)
-all_kos <- unique(unlist(ko_list))
-
-# Map KOs to KEGG pathways
-ko2pathway <- keggLink("pathway", "ko")
-pathway2name <- keggList("pathway")
-
-# Filter only pathways relevant to your KOs
-mapped_pathways <- ko2pathway[names(ko2pathway) %in% paste0("ko:", all_kos)]
-
-# Perform KEGG pathway enrichment
-ekegg <- enrichKEGG(gene = all_kos,
-                    organism = "ko",  # for KO-level (universal)
-                    keyType = "kegg")
-# Visualize
-barplot(ekegg, showCategory = 10)
-dotplot(ekegg)
-
+```{r kegg-2}
+if (nrow(patterns2) > 0) plot_kegg(patterns2)
 ```
 
 ### Compounds x Food
 
-```{r}
-food_compounds <- patterns2 %>% 
-  dplyr::select(compound1_id, compound1_assoc_food, compound1_freq) %>% 
-  mutate(compound1_assoc_food = gsub("\\[|\\]|'", "", compound1_assoc_food)) %>%  # remove [], '
-  separate_rows(compound1_assoc_food, sep = ",")  # split into multiple rows
-food_compounds$compound1_assoc_food <- stringr::str_trim(food_compounds$compound1_assoc_food)
-
-food_compounds %>% 
-  group_by(compound1_assoc_food) %>% 
-  summarise(n_compounds = n_distinct(compound1_id)) %>% 
-  ggplot(aes(x = n_compounds, y = reorder(compound1_assoc_food, n_compounds))) + 
-    geom_bar(stat = "identity") + 
-    theme_bw() +
-    xlab("Number of Compounds") + 
-    ylab(" ")
-
-colnames(food_compounds)[1] <- "compound"
-food_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_super_class, compound1_assoc_food) %>% 
-  group_by(compound1_assoc_food, taxonomy_super_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(x=compound1_assoc_food, y = taxonomy_super_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Taxonomy Super Class") + 
-    labs(fill = "Number of \nCompounds")
-
-food_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_class, compound1_assoc_food) %>% 
-  group_by(compound1_assoc_food, taxonomy_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(x=compound1_assoc_food, y = taxonomy_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Taxonomy Class") + 
-    labs(fill = "Number of \nCompounds")
+```{r compounds-food-2}
+if (nrow(patterns2) > 0) plot_compounds_food(patterns2, hmdb)
 ```
 
 ### Compounds x Genera
 
-```{r}
-microbe_compounds <- patterns2 %>% 
-  dplyr::select(compound2_id, organisms, abundance) %>% 
-  mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%  # remove [], '
-  separate_rows(organisms, sep = ",")  # split into multiple rows
-microbe_compounds$organisms <- stringr::str_trim(microbe_compounds$organisms)
-microbe_compounds <- microbe_compounds %>% 
-  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
-                       too_few = "align_start", too_many = "merge", cols_remove = F)
-
-microbe_compounds %>% 
-  group_by(genus) %>% 
-  summarise(n_compounds = n_distinct(compound2_id)) %>% 
-  ggplot(aes(x = n_compounds, y = reorder(genus, n_compounds))) + 
-    geom_bar(stat = "identity") + 
-    theme_bw() +
-    xlab("Number of Compounds") + 
-    ylab(" ") 
-
-colnames(microbe_compounds)[1] <- "compound"
-microbe_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_super_class, genus) %>% 
-  group_by(genus, taxonomy_super_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(y=genus, x = taxonomy_super_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ylab(" ") + 
-    xlab("Taxonomy Super Class") + 
-    labs(fill = "Number of \nCompounds") -> p2
-
-microbe_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_class, genus) %>% 
-  group_by(genus, taxonomy_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(y=genus, x = taxonomy_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ylab(" ") + 
-    xlab("Taxonomy Class") + 
-    labs(fill = "Number of \nCompounds") -> p3
+```{r compounds-genera-2}
+if (nrow(patterns2) > 0) plot_compounds_genera(patterns2, hmdb)
 ```
 
-```{r}
-plotly::ggplotly(p2)
+### Reactions x Genera
+
+```{r reactions-genera-2}
+if (nrow(patterns2) > 0) plot_reactions_genera(patterns2, reactions)
 ```
 
-```{r}
-plotly::ggplotly(p3)
-```
+##
 
-### Reactions x Genera 
+## References
 
-```{r}
-# create dataframe with reactions and their name from json 
-reactions_list <- patterns2$reaction
-names <- c()
-for (reaction in reactions_list){
-  name <- reactions[[reaction]]$NAME
-  if (is.null(name)){
-    name <- "unnamed"
-  }
-  names <- c(names, name) 
-}
-
-if (length(reactions_list) == length(names)){ # sanity check to make sure lists are of same length
-  reaction_df <- data.frame(reaction = reactions_list, 
-                            reaction_name = names)
-}
-
-# merge reaction names and create plots 
-microbes_reactions <- patterns2 %>% 
-  left_join(reaction_df, by = "reaction") %>% 
-  dplyr::select(reaction, organisms, abundance, reaction_name) %>% 
-  mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%  # remove [], '
-  separate_rows(organisms, sep = ",")  # split into multiple rows
-microbes_reactions$organisms <- stringr::str_trim(microbes_reactions$organisms)
-microbes_reactions <- microbes_reactions %>% 
-  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
-                       too_few = "align_start", too_many = "merge", cols_remove = F)
-
-microbes_reactions %>% 
-  dplyr::select(genus, abundance, reaction_name) %>% 
-  group_by(genus, reaction_name) %>% 
-  summarise(s_abundance = sum(abundance)) %>% 
-  ggplot(aes(y = reaction_name, x = genus, fill = s_abundance)) + 
-    geom_tile() + 
-    theme_bw() + 
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Reaction") + 
-    labs(fill = "Abundance") -> p 
-
-plotly::ggplotly(p)
-```
-
-## Pattern Query 3 Results: Both to Both
-
-The results of this query are the instances where we know that the reactant used in a reaction could come from BOTH a food item or a microbe, and the resulting product can come from BOTH a food and a microbes.
-
-```{r}
-patterns3 <- patterns %>% 
-  filter(compound1_origin == "both" & compound2_origin == "both")
-```
-
-## {.tabset} 
-
-### Pattern Visualization 
-
-*Note*: some edges might represent the same reaction, for example: if reaction1 is reactant1 --> product1 + product2, the query will create two lines where reactant1 becomes product1 and reactant1 becomes product2; therefore, the graph will create an edge for each separate relationship. 
-
-```{r}
-# creating nodes dataframe
-c1 <- patterns3 %>% 
-  mutate(compound1_origin = "from_both") %>% 
-  dplyr::select(compound1_id, compound1_origin, 
-         compound1_assoc_food, compound1_freq)
-colnames(c1) <- c("compound", "origin", "assoc_food", "freq")
-
-c2 <- patterns3 %>% 
-  mutate(compound2_origin = "to_both") %>% 
-  dplyr::select(compound2_id, compound2_origin, 
-         compound2_assoc_food, compound2_freq)
-colnames(c2) <- c("compound", "origin", "assoc_food", "freq")
-
-nodes <- rbind(c1, c2)
-nodes <- nodes %>% 
-  distinct(compound, .keep_all = T) 
-nodes$freq[is.na(nodes$freq)] <- 0
-nodes$scaled_freq <- rescale(nodes$freq, to = c(0, 20))
-
-# create edges dataframe 
-edges <- patterns3 %>%  
-  dplyr::select(compound1_id, compound2_id, reaction, KOs, organisms, abundance)
-edges$scaled_abundance <- rescale(edges$abundance, to = c(0, 1))
-
-net <- graph_from_data_frame(d=edges, vertices=nodes, directed=T) 
-ggraph(net, layout = "fr") +
-  geom_edge_link(aes(width = scaled_abundance), 
-                 arrow = arrow(length = unit(4, 'mm'), type = "closed"), 
-                 end_cap = circle(1, 'mm'), 
-                 show.legend = F) +
-  geom_node_point(aes(size = scaled_freq, color = origin)) +
-  scale_color_manual(values = c("to_both"="gray50", "from_both"="darkcyan")) +
-  scale_size(guide = "none") + 
-  geom_node_label(aes(label = name), 
-                 repel = TRUE,            
-                 size = 3) +
-  theme_void()
-```
-
-
-### KEGG Mapper of KOs 
-
-*clusterProfiler[1]* is the package used to functionally profile the KOs involved in these reactions (edges), and it has two standard outputs. In the bar plot, each bar represents a significantly enriched KEGG pathway, and the x-axis is the number of KOs annotated to that pathway. To interpret this plot, the longer the bars the more KOs that mapped to that pathway and the lighter the color the more statistically significant the enrichment was. In the dot plot, there is an added dimension. The y-axis is also the pathway name, the x-axis is the gene ratio (proportion of KOs in pathway over total KOs), dot size is the number of KOs in that pathway (like bar length in the bar plot), and dot color is significance level. To interpret this plot, the father to the right a dot shows up the higher the proportion of genes in that pathway, the larger the dots are the more total genes that are involved in that pathway, and the lighter the color the stronger the significance. 
-
-```{r}
-library(clusterProfiler)
-library(KEGGREST)
-
-ko_column <- patterns3$KOs
-ko_list <- lapply(str_extract_all(ko_column, "K\\d{5}"), unlist)
-all_kos <- unique(unlist(ko_list))
-
-# Map KOs to KEGG pathways
-ko2pathway <- keggLink("pathway", "ko")
-pathway2name <- keggList("pathway")
-
-# Filter only pathways relevant to your KOs
-mapped_pathways <- ko2pathway[names(ko2pathway) %in% paste0("ko:", all_kos)]
-
-# Perform KEGG pathway enrichment
-ekegg <- enrichKEGG(gene = all_kos,
-                    organism = "ko",  # for KO-level (universal)
-                    keyType = "kegg")
-# Visualize
-barplot(ekegg, showCategory = 10)
-dotplot(ekegg)
-
-```
-
-### Compounds x Food
-
-```{r}
-food_compounds <- patterns3 %>% 
-  dplyr::select(compound1_id, compound1_assoc_food, compound1_freq) %>% 
-  mutate(compound1_assoc_food = gsub("\\[|\\]|'", "", compound1_assoc_food)) %>%  # remove [], '
-  separate_rows(compound1_assoc_food, sep = ",")  # split into multiple rows
-food_compounds$compound1_assoc_food <- stringr::str_trim(food_compounds$compound1_assoc_food)
-
-food_compounds %>% 
-  group_by(compound1_assoc_food) %>% 
-  summarise(n_compounds = n_distinct(compound1_id)) %>% 
-  ggplot(aes(x = n_compounds, y = reorder(compound1_assoc_food, n_compounds))) + 
-    geom_bar(stat = "identity") + 
-    theme_bw() +
-    xlab("Number of Compounds") + 
-    ylab(" ")
-
-colnames(food_compounds)[1] <- "compound"
-food_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_super_class, compound1_assoc_food) %>% 
-  group_by(compound1_assoc_food, taxonomy_super_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(x=compound1_assoc_food, y = taxonomy_super_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Taxonomy Super Class") + 
-    labs(fill = "Number of \nCompounds")
-
-food_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_class, compound1_assoc_food) %>% 
-  group_by(compound1_assoc_food, taxonomy_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(x=compound1_assoc_food, y = taxonomy_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Taxonomy Class") + 
-    labs(fill = "Number of \nCompounds")
-```
-
-### Compounds x Genera
-
-```{r}
-microbe_compounds <- patterns3 %>% 
-  dplyr::select(compound2_id, organisms, abundance) %>% 
-  mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%  # remove [], '
-  separate_rows(organisms, sep = ",")  # split into multiple rows
-microbe_compounds$organisms <- stringr::str_trim(microbe_compounds$organisms)
-microbe_compounds <- microbe_compounds %>% 
-  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
-                       too_few = "align_start", too_many = "merge", cols_remove = F)
-
-microbe_compounds %>% 
-  group_by(genus) %>% 
-  summarise(n_compounds = n_distinct(compound2_id)) %>% 
-  ggplot(aes(x = n_compounds, y = reorder(genus, n_compounds))) + 
-    geom_bar(stat = "identity") + 
-    theme_bw() +
-    xlab("Number of Compounds") + 
-    ylab(" ") 
-
-colnames(microbe_compounds)[1] <- "compound"
-microbe_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_super_class, genus) %>% 
-  group_by(genus, taxonomy_super_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(y=genus, x = taxonomy_super_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ylab(" ") + 
-    xlab("Taxonomy Super Class") + 
-    labs(fill = "Number of \nCompounds") -> p2
-
-microbe_compounds %>% 
-  left_join(hmdb, by = "compound") %>% 
-  dplyr::select(compound, taxonomy_class, genus) %>% 
-  group_by(genus, taxonomy_class) %>% 
-  summarise(n_compounds = n_distinct(compound)) %>% 
-  ggplot(aes(y=genus, x = taxonomy_class, fill = n_compounds)) + 
-    geom_tile() + 
-    theme_bw() +
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    ylab(" ") + 
-    xlab("Taxonomy Class") + 
-    labs(fill = "Number of \nCompounds") -> p3
-```
-
-```{r}
-plotly::ggplotly(p2)
-```
-
-```{r}
-plotly::ggplotly(p3)
-```
-
-### Reactions x Genera 
-
-```{r}
-# create dataframe with reactions and their name from json 
-reactions_list <- patterns3$reaction
-names <- c()
-for (reaction in reactions_list){
-  name <- reactions[[reaction]]$NAME
-  if (is.null(name)){
-    name <- "unnamed"
-  }
-  names <- c(names, name) 
-}
-
-if (length(reactions_list) == length(names)){ # sanity check to make sure lists are of same length
-  reaction_df <- data.frame(reaction = reactions_list, 
-                            reaction_name = names)
-}
-
-# merge reaction names and create plots 
-microbes_reactions <- patterns3 %>% 
-  left_join(reaction_df, by = "reaction") %>% 
-  dplyr::select(reaction, organisms, abundance, reaction_name) %>% 
-  mutate(organisms = gsub("\\[|\\]|'", "", organisms)) %>%  # remove [], '
-  separate_rows(organisms, sep = ",")  # split into multiple rows
-microbes_reactions$organisms <- stringr::str_trim(microbes_reactions$organisms)
-microbes_reactions <- microbes_reactions %>% 
-  separate_wider_delim(organisms, delim = '.', names = c('genus', 'species'), 
-                       too_few = "align_start", too_many = "merge", cols_remove = F)
-
-microbes_reactions %>% 
-  dplyr::select(genus, abundance, reaction_name) %>% 
-  group_by(genus, reaction_name) %>% 
-  summarise(s_abundance = sum(abundance)) %>% 
-  ggplot(aes(y = reaction_name, x = genus, fill = s_abundance)) + 
-    geom_tile() + 
-    theme_bw() + 
-    scale_y_discrete(labels = label_wrap(width = 15)) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-    xlab(" ") + 
-    ylab("Reaction") + 
-    labs(fill = "Abundance") -> p 
-
-plotly::ggplotly(p)
-```
-
-## 
-
-[1] Yu G, Wang L, Han Y and He Q*. clusterProfiler: an R package for comparing biological themes among gene clusters. OMICS: A Journal of Integrative Biology. 2012, 16(5):284-287.
+[1] Yu G, Wang L, Han Y and He Q. clusterProfiler: an R package for comparing biological themes among gene clusters. *OMICS: A Journal of Integrative Biology.* 2012, 16(5):284-287.
