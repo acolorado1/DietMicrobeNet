@@ -10,7 +10,7 @@ After getting set up, you will have decide if you want to run each step manually
 
 * For **manual approach** follow instructions in the usage section: [Running the pipeline](https://acolorado1.github.io/DietMicrobeNet/latest/usage/).
 * For **Snakemake Workflow** (RECOMMENDED) follow [Quick Start Example](https://acolorado1.github.io/DietMicrobeNet/latest/quickstart/) instructions
-* [Inter-Sample Comparison](https://acolorado1.github.io/DietMicrobeNet/latest/intersample_comp/) 
+* [Inter-Sample Comparison](https://acolorado1.github.io/DietMicrobeNet/latest/intersample_comp/) can be performed after manual or snakemake approach
 
 ## Outputs
 
