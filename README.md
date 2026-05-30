@@ -1,6 +1,6 @@
-# DietMicrobeNet: Network Modeling of Dietary Effect on Microbial Metabolism
+# DietMicrobe[Host]Net: Network Modeling of Dietary Effect on Microbial Metabolism
 
-The purpose of this code will be to create a metabolic network where nodes represent compounds and edges represent reactions. Compounds will originate from either food items (e.g. apple), microbes, both or neither. Graphs are created in memory, where patterns of origin (e.g., where a food originating compound is connected to a microbe originating compound) will be found and stored. Information such as food frequency, read abundance, and taxonomy can also be conserved within the graph depending on user preferences. This will allow a user to find potential instances of dietary metabolism by microbes.
+The purpose of this code will be to create a metabolic network where nodes represent compounds and edges represent reactions. Compounds will originate from either food items (e.g. apple), microbes, host, a combination thereof or neither (cannot be predicted). Graphs are created in memory, where patterns of origin will be found and stored (for details regarding patterns see [docs](https://acolorado1.github.io/DietMicrobeNet/latest/usage/#step-5-build-graph-and-extract-patterns) ). Information such as food frequency, read abundance, and taxonomy can also be conserved within the graph depending on user preferences. This will allow a user to find potential instances of dietary metabolism by microbes and host.
 
 ## General Workflow 
 
@@ -22,14 +22,15 @@ The main outputs of this program will be:
 4. Figures describing distribution of node and edge weights (representing food frequency and read abundance respectively)
 5. Summary text file for each graph 
 
-If you run the graph comparison script you will generate: 
-
-1. Three summary files on the results of three different patterns that were searched for in the graph 
-2. Two figures for each pattern (6 total) describing clustered similarity of graphs 
 
 If you include a metabolome: 
 
 1. HTML report on which compounds found in the patterns were also found in a metabolomics experiment that you have provided. 
+
+If you run the graph comparison script you will generate: 
+
+1.  Summary files on the results of three different patterns that were searched for in the graph 
+2. Figures describing clustered similarity of graphs 
 
 ## Contact
 

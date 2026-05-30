@@ -5,7 +5,6 @@
 - ADD: metabolome comparison to the snakemake workflow 
 - UPDATE: changed graph results report to show only most and least restrictive results rather than pattern specific results 
 - UPDATE: unit tests are now automatically run with a push to main through GitHub Actions 
-- 
 
 ## v1.0.11
 - Minor bug fixes for Whole Genome part of the pipeline
