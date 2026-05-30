@@ -16,6 +16,7 @@ my_directory/
 │   ├── food_meta.csv
 │   ├── food_compound_report.html
 │   ├── microbe_compound_report.html     # only if --include-orgs and --n-weights
+│   ├── MetabolomeComparison_Report.html # only if --metabolome
 │   ├── AMON_output/
 │   │   ├── AMON_log.txt
 │   │   ├── gene_set_1_enrichment.tsv
@@ -33,29 +34,52 @@ my_directory/
 │       ├── network_summary.txt
 │       ├── graph_results.csv
 │       └── graph_results_report.html
-└── output_gen/                          # Genome-based analysis outputs
-    ├── food_item_kos.csv
+├── output_gen/                          # Genome-based analysis outputs
+│   ├── food_item_kos.csv
+│   ├── food_compound_report.html
+│   ├── microbe_compound_report.html     # only if --include-orgs and --n-weights
+│   ├── MetabolomeComparison_Report.html # only if --metabolome
+│   ├── org_KO/
+│   │   ├── <one .txt file per food item>
+│   │   └── joined.txt
+│   ├── AMON_output/
+│   │   ├── AMON_log.txt
+│   │   ├── gene_set_1_enrichment.tsv
+│   │   ├── gene_set_2_enrichment.tsv
+│   │   ├── kegg_mapper.tsv
+│   │   ├── origin_table.tsv
+│   │   ├── enrichment_heatmap.png
+│   │   ├── venn.png
+│   │   ├── co_dict.json
+│   │   ├── ko_dict.json
+│   │   └── rn_dict.json
+│   └── graph/
+│       ├── WG_nodes_df.csv
+│       ├── WG_edges_df.csv
+│       ├── WG_AbundanceDistribution.png
+│       ├── WG_FoodFrequencyDistribution.png
+│       ├── network_summary.txt
+│       ├── graph_results.csv
+│       └── graph_results_report.html
+└── output_host/                         # Host-based analysis outputs
+    ├── food_meta.csv
     ├── food_compound_report.html
     ├── microbe_compound_report.html     # only if --include-orgs and --n-weights
-    ├── org_KO/
-    │   ├── <one .txt file per food item>
-    │   └── joined.txt
+    ├── MetabolomeComparison_Report.html # only if --metabolome
     ├── AMON_output/
     │   ├── AMON_log.txt
     │   ├── gene_set_1_enrichment.tsv
-    │   ├── gene_set_2_enrichment.tsv
     │   ├── kegg_mapper.tsv
     │   ├── origin_table.tsv
     │   ├── enrichment_heatmap.png
-    │   ├── venn.png
     │   ├── co_dict.json
     │   ├── ko_dict.json
     │   └── rn_dict.json
     └── graph/
-        ├── WG_nodes_df.csv
-        ├── WG_edges_df.csv
-        ├── WG_AbundanceDistribution.png
-        ├── WG_FoodFrequencyDistribution.png
+        ├── nodes_df.csv
+        ├── edges_df.csv
+        ├── AbundanceDistribution.png
+        ├── FoodFrequencyDistribution.png
         ├── network_summary.txt
         ├── graph_results.csv
         └── graph_results_report.html

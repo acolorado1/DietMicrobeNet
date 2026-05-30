@@ -22,10 +22,12 @@ graph LR
 |------|-------------|----------|
 | 1 | Launch Streamlit app to create machine-readable FFQ | Optional |
 | 2 | Choose compound source (FooDB or KEGG) | ✅ |
+| 2A | If FooDB, determine if host is included | Optional |
 | 3A/3B | Generate nodes and edges | ✅ |
 | 4 | Microbial compound report | Optional |
 | 5 | Build graph and extract patterns | ✅ |
 | 6 | Visualize results | Optional |
+| 7 | Metabolome comparison | Optional |
 
 ---
 
@@ -194,6 +196,8 @@ python src/RenderCompoundAnalysis_Microbe.py \
 
 ## Step 5 — Build Graph and Extract Patterns
 
+For **Diet -> Microbe** patterns run: 
+
 ```bash
 python src/run_graph.py \
   --n "graph/nodes.csv" \
@@ -209,6 +213,56 @@ python src/run_graph.py \
 | Food → Both | Compound shared between diet and microbial production |
 | Both → Both | Compound produced and consumed across both sources |
 
+For **Diet -> Microbe -> Host** patterns run: 
+
+```bash
+python src/Host/host_run_graph.py \
+  --n "graph/nodes.csv" \
+  --e "graph/edges.csv" \
+  --o "graph_results.csv"
+```
+
+**Patterns identified**
+
+| # | Pattern | Description |
+|---|---------|-------------|
+| 1 | diet → microbe → host | Diet-only → microbial-only → host-only transformation |
+| 2 | diet → microbe → hostdiet | Diet-only → microbial-only → host or diet origin |
+| 3 | diet → microbe → hostmicrobe | Diet-only → microbial-only → host or microbial origin |
+| 4 | diet → microbe → all | Diet-only → microbial-only → any source |
+| 5 | diet → microbediet → host | Diet-only → diet or microbial → host-only |
+| 6 | diet → microbediet → hostdiet | Diet-only → diet or microbial → host or diet origin |
+| 7 | diet → microbediet → hostmicrobe | Diet-only → diet or microbial → host or microbial origin |
+| 8 | diet → microbediet → all | Diet-only → diet or microbial → any source |
+| 9 | diet → all → host | Diet-only → any source → host-only |
+| 10 | diet → all → hostdiet | Diet-only → any source → host or diet origin |
+| 11 | diet → all → hostmicrobe | Diet-only → any source → host or microbial origin |
+| 12 | diet → all → all | Diet-only → any source → any source |
+| 13 | microbediet → microbe → host | Diet or microbial → microbial-only → host-only |
+| 14 | microbediet → microbe → hostdiet | Diet or microbial → microbial-only → host or diet origin |
+| 15 | microbediet → microbe → hostmicrobe | Diet or microbial → microbial-only → host or microbial origin |
+| 16 | microbediet → microbe → all | Diet or microbial → microbial-only → any source |
+| 17 | microbediet → microbediet → host | Diet or microbial → diet or microbial → host-only |
+| 18 | microbediet → microbediet → hostdiet | Diet or microbial → diet or microbial → host or diet origin |
+| 19 | microbediet → microbediet → hostmicrobe | Diet or microbial → diet or microbial → host or microbial origin |
+| 20 | microbediet → microbediet → all | Diet or microbial → diet or microbial → any source |
+| 21 | microbediet → all → host | Diet or microbial → any source → host-only |
+| 22 | microbediet → all → hostdiet | Diet or microbial → any source → host or diet origin |
+| 23 | microbediet → all → hostmicrobe | Diet or microbial → any source → host or microbial origin |
+| 24 | microbediet → all → all | Diet or microbial → any source → any source |
+| 25 | all → microbe → host | Any source → microbial-only → host-only |
+| 26 | all → microbe → hostdiet | Any source → microbial-only → host or diet origin |
+| 27 | all → microbe → hostmicrobe | Any source → microbial-only → host or microbial origin |
+| 28 | all → microbe → all | Any source → microbial-only → any source |
+| 29 | all → microbediet → host | Any source → diet or microbial → host-only |
+| 30 | all → microbediet → hostdiet | Any source → diet or microbial → host or diet origin |
+| 31 | all → microbediet → hostmicrobe | Any source → diet or microbial → host or microbial origin |
+| 32 | all → microbediet → all | Any source → diet or microbial → any source |
+| 33 | all → all → host | Any source → any source → host-only |
+| 34 | all → all → hostdiet | Any source → any source → host or diet origin |
+| 35 | all → all → hostmicrobe | Any source → any source → host or microbial origin |
+| 36 | all → all → all | Any source → any source → any source |
+
 ---
 
 ## Step 6 — Visualize Graph Results
@@ -220,9 +274,28 @@ python src/RenderGraphResults_Report.py \
   --output "graph_results_report.html"
 ```
 
-!!! note
-    Steps 2–4 correspond to the general workflow described on the [home page](index.md).
+## Step 7 — Metabolome Comparison 
+
+To view which compounds identified in the patterns were also found in a metabolomics experiment you performed, two inputs are needed: 
+
+### Inputs 
+
+1. A `graph_results.csv` or the output of **python src/run_graph.py** in Step 4. 
+
+2. CSV containing a list of KEGG compounds that were identified in the metabolome. An example of this file can be found in `Data/test_sample/metabolome.csv`.
+
+### Running the script 
+
+To get a list of optional and required arguments run `python src/RenderMetabolomeComparison.py -h`:
+
+```
+options:
+  -h, --help            show this help message and exit
+  --patterns PATTERNS   Path to the graph_results.csv
+  --metabolome METABOLOME
+                        Path to CSV file containing one column of KEGG compounds.
+  --output OUTPUT       Path to HTML report file
+```
 
 !!! tip
-    Use `run_workflow.py` to run Steps 3–4 automatically. See the
-    [Quick Start guide](quickstart.md) for a complete example.
+    Use `run_workflow.py` to run steps 2-7 with Snakemake workflow described on the [home page](index.md) automatically. See the [Quick Start guide](quickstart.md) for a complete example.

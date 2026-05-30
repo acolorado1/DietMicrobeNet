@@ -28,17 +28,15 @@ wget 'https://olucdenver-my.sharepoint.com/:x:/g/personal/angelasofia_burkhartco
 
 Your sample directory must contain the following files:
 
-| File | Description |
-|------|-------------|
-| `foodb_foods_dataframe.csv` | Diet data for FooDB-based analysis |
-| `kegg_organisms_dataframe.csv` | Diet data for genome-based analysis |
-| `ko_taxonomy_abundance.csv` | Microbiome KO abundances |
-| `noquote_ko.txt` | KO list without quotes |
-
-!!! note
-    `foodb_foods_dataframe.csv` and `kegg_organisms_dataframe.csv` are only required
-    for their respective analysis modes. If running with `--all-food`, the diet input
-    file is not required as all foods from FooDB will be used automatically.
+| File | Description | Required |
+|------|-------------| -------- |
+| `ko_taxonomy_abundance.csv` | Microbiome KO abundances and taxonomy | ✅ |
+| `noquote_ko.txt` | KO list without quotes | ✅ |
+| `foodb_foods_dataframe.csv` | Diet data for FooDB-based analysis | ❌  only if **foodb** used and not **all foods**|
+| `kegg_organisms_dataframe.csv` | Diet data for genome-based analysis | ❌  only if **genome** used |
+| `host_ko_abundance.csv` | Host KO abundances | ❌  only if **host** is used|
+| `noquote_ko_host.txt` | KO list without quotes from host | ❌  only if **host** is used|
+| `metabolome.csv` | List of KEGG compounds | ❌  only if **metabolome** is used |
 
 ## Example
 
@@ -51,6 +49,8 @@ The easiest way to run DMnet is through the included `run_workflow.py` wrapper s
 | `--directories` | ✅ | One or more **absolute paths** to sample directories, space-separated and quoted |
 | `--foodb` | ❌ | Enable FooDB-based analysis |
 | `--genome` | ❌ | Enable genome-based analysis |
+| `--host` | ❌ | Enable host-based analysis |
+| `--metabolome` | ❌ | Include if comparison to known metabolome is wanted |
 | `--e-weights` | ❌ | Weight edges by read abundance |
 | `--n-weights` | ❌ | Weight nodes by food frequency |
 | `--include-orgs` | ❌ | Include organism-level information |
@@ -73,6 +73,8 @@ python run_workflow.py \
     --directories "/absolute/path/to/Data/test_sample" \
     --foodb \
     --genome \
+    --host \
+    --metabolome\
     --e-weights \
     --n-weights \
     --include-orgs \
@@ -101,6 +103,7 @@ my_directory/
 │   ├── food_meta.csv
 │   ├── food_compound_report.html
 │   ├── microbe_compound_report.html     # only if --include-orgs and --n-weights
+│   ├── MetabolomeComparison_Report.html # only if --metabolome
 │   ├── AMON_output/
 │   │   ├── AMON_log.txt
 │   │   ├── gene_set_1_enrichment.tsv
@@ -118,29 +121,52 @@ my_directory/
 │       ├── network_summary.txt
 │       ├── graph_results.csv
 │       └── graph_results_report.html
-└── output_gen/                          # Genome-based analysis outputs
-    ├── food_item_kos.csv
+├── output_gen/                          # Genome-based analysis outputs
+│   ├── food_item_kos.csv
+│   ├── food_compound_report.html
+│   ├── microbe_compound_report.html     # only if --include-orgs and --n-weights
+│   ├── MetabolomeComparison_Report.html # only if --metabolome
+│   ├── org_KO/
+│   │   ├── <one .txt file per food item>
+│   │   └── joined.txt
+│   ├── AMON_output/
+│   │   ├── AMON_log.txt
+│   │   ├── gene_set_1_enrichment.tsv
+│   │   ├── gene_set_2_enrichment.tsv
+│   │   ├── kegg_mapper.tsv
+│   │   ├── origin_table.tsv
+│   │   ├── enrichment_heatmap.png
+│   │   ├── venn.png
+│   │   ├── co_dict.json
+│   │   ├── ko_dict.json
+│   │   └── rn_dict.json
+│   └── graph/
+│       ├── WG_nodes_df.csv
+│       ├── WG_edges_df.csv
+│       ├── WG_AbundanceDistribution.png
+│       ├── WG_FoodFrequencyDistribution.png
+│       ├── network_summary.txt
+│       ├── graph_results.csv
+│       └── graph_results_report.html
+└── output_host/                         # Host-based analysis outputs
+    ├── food_meta.csv
     ├── food_compound_report.html
     ├── microbe_compound_report.html     # only if --include-orgs and --n-weights
-    ├── org_KO/
-    │   ├── <one .txt file per food item>
-    │   └── joined.txt
+    ├── MetabolomeComparison_Report.html # only if --metabolome
     ├── AMON_output/
     │   ├── AMON_log.txt
     │   ├── gene_set_1_enrichment.tsv
-    │   ├── gene_set_2_enrichment.tsv
     │   ├── kegg_mapper.tsv
     │   ├── origin_table.tsv
     │   ├── enrichment_heatmap.png
-    │   ├── venn.png
     │   ├── co_dict.json
     │   ├── ko_dict.json
     │   └── rn_dict.json
     └── graph/
-        ├── WG_nodes_df.csv
-        ├── WG_edges_df.csv
-        ├── WG_AbundanceDistribution.png
-        ├── WG_FoodFrequencyDistribution.png
+        ├── nodes_df.csv
+        ├── edges_df.csv
+        ├── AbundanceDistribution.png
+        ├── FoodFrequencyDistribution.png
         ├── network_summary.txt
         ├── graph_results.csv
         └── graph_results_report.html
@@ -170,4 +196,4 @@ my_directory/
 Once networks and patterns have been found for each sample you can continue to do:
 
 1. [inter-sample comparison](intersample_comp.md)
-2. [metabolome comparison](metabolome_comp.md) 
+2. Run your own analyses 😃!

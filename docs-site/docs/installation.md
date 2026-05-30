@@ -36,7 +36,7 @@ wget 'https://olucdenver-my.sharepoint.com/:x:/g/personal/angelasofia_burkhartco
 wget 'https://olucdenver-my.sharepoint.com/:x:/g/personal/angelasofia_burkhartcolorado_cuanschutz_edu/EZ1pyHd616RFkR9zG6kenuoBhZDroHYTbaGmEfwpxFOHLg?download=1' -O Data/AllFood/food_meta.csv
 ```
 
-## Needed Files for Input 
+## Required Files 
 
 There are three types of files that are needed to run the program: 
 
@@ -82,6 +82,30 @@ Example of the file:
 
 ### Food items 
 
-* These are typically downloaded in the second step of this workflow (see [2. Find Food Items](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items)) 
-* Named either *foodb_foods_dataframe.csv* or *kegg_organisms_dataframe.csv*
-* If you want to include all possible food items you can use *Data/AllFood/food_meta.csv* (see [2. Find Food Items](https://github.com/acolorado1/DietMicrobeNet/wiki/2.-Find-Food-Items)) 
+* Named either *foodb_foods_dataframe.csv* or *kegg_organisms_dataframe.csv* from using the web application included 
+* If you want to include all possible food items you can use *Data/AllFood/food_meta.csv* 
+
+## If Host 
+
+If you want to include host information into the network two further files must be included:
+
+1. _host_ko_abundance.csv_ (host gene metadata similar to that of the microbes)
+2. _noquote_ko_host.txt_ (list of host genes similar to that of the microbes)
+
+## If Metabolome 
+
+If you want to compare the compounds identified in dietary metabolism to a list of compounds found in the metabolome of a sample you must provide a file named `metabolome.csv` that looks like:
+
+```
+compound
+C00131
+C00009
+C00003
+C00534
+C00473
+C00013
+```
+
+## Examples
+
+There are examples of all files in `Data/test_sample/`
