@@ -4,7 +4,7 @@ import sys
 from .downloader import download_data
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def run_GetFoods():

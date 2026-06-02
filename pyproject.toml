@@ -10,6 +10,8 @@ authors = [
     {name = "Angela Sofia Burkhart Colorado", email = "angelasofia.burkhartcolorado@cuanschutz.edu"},
     {name = "Catherine Lozupone", email = "catherine.lozupone@cuanschutz.edu"}
 ]
+readme = "README.md"
+requires-python= ">=3.9"
 
 dependencies = [
     "streamlit",
@@ -19,8 +21,12 @@ dependencies = [
 [project.urls]
 Homepage = "https://acolorado1.github.io/DietMicrobeNet/latest/"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["*"]
 
 [project.scripts]
 
