@@ -9,7 +9,7 @@ parser.add_argument("--output", default="filepath.html", help="Path to HTML repo
 args = parser.parse_args()
 
 this_dir = os.path.dirname(__file__)
-rmd_path = os.path.join(this_dir, "Host/HostGraphResults_Report.Rmd")
+rmd_path = os.path.join(this_dir, "HostGraphResults_Report.Rmd")
 # Ensure output path is absolute
 output_path = os.path.abspath(args.output)
 

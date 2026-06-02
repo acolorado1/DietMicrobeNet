@@ -17,18 +17,19 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = TRUE, echo = FALS
                       fig.align = "center")
 options(scipen = 999)
 
-library(readr)
-library(dplyr)
-library(tidyverse)
-library(igraph)
-library(scales)
-library(ggplot2)
-library(ggraph)
-library(jsonlite)
-library(plotly)
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(KEGGREST)
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyverse)
+  library(igraph)
+  library(scales)
+  library(ggplot2)
+  library(ggraph)
+  library(jsonlite)
+  library(plotly)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(KEGGREST)
+})
 ```
 
 ```{r load-data}

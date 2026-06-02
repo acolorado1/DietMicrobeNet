@@ -17,22 +17,24 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE, eval = TRUE, echo = FALS
                       fig.align = "center")
 options(scipen = 999)
 
-library(readr)
-library(dplyr)
-library(tidyverse)
-library(igraph)
-library(scales)
-library(ggplot2)
-library(ggraph)
-library(jsonlite)
-library(plotly)
-library(clusterProfiler)
-library(org.Hs.eg.db)
-library(KEGGREST)
+suppressPackageStartupMessages({
+  library(readr)
+  library(dplyr)
+  library(tidyverse)
+  library(igraph)
+  library(scales)
+  library(ggplot2)
+  library(ggraph)
+  library(jsonlite)
+  library(plotly)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(KEGGREST)
+})
 ```
 
 ```{r load-data}
-hmdb      <- read_csv("../Data/hmdb.csv")
+hmdb      <- read_csv("../../Data/hmdb.csv")
 colnames(hmdb)[1] <- "compound"
 patterns  <- read_csv(params$patterns)
 reactions <- read_json(params$reactions)
@@ -66,56 +68,60 @@ plot_network_3node <- function(df, color_values) {
   if (nrow(df) == 0) { message("No patterns to plot."); return(invisible(NULL)) }
 
   # Nodes
-  n1 <- df %>%
-    dplyr::select(compound = compound1_id,
-                  origin   = compound1_origin,
-                  assoc_food = compound1_assoc_food,
-                  freq     = compound1_freq)
-  n2 <- df %>%
-    dplyr::select(compound = compound2_id,
-                  origin   = compound2_origin,
-                  assoc_food = compound2_assoc_food,
-                  freq     = compound2_freq)
-  n3 <- df %>%
-    dplyr::select(compound = compound3_id,
-                  origin   = compound3_origin,
-                  assoc_food = compound3_assoc_food,
-                  freq     = compound3_freq)
+  n1 <- df %>% dplyr::select(compound = compound1_id, origin = compound1_origin,
+                               freq = compound1_freq)
+  n2 <- df %>% dplyr::select(compound = compound2_id, origin = compound2_origin,
+                               freq = compound2_freq)
+  n3 <- df %>% dplyr::select(compound = compound3_id, origin = compound3_origin,
+                               freq = compound3_freq)
 
   nodes <- bind_rows(n1, n2, n3) %>%
     distinct(compound, .keep_all = TRUE) %>%
     mutate(freq = replace_na(freq, 0),
-           scaled_freq = rescale(freq, to = c(0, 20)))
+           scaled_freq = rescale(freq, to = c(2, 8)))
 
-  # Edges: two hops per row
-  e1 <- df %>%
-    dplyr::select(from = compound1_id, to = compound2_id,
-                  reaction = edge1_reaction, KOs = edge1_KOs,
-                  organisms = edge1_organisms,
-                  abundance = edge1_m_abundance) %>%
+  # Edges
+  e1 <- df %>% dplyr::select(from = compound1_id, to = compound2_id,
+                               abundance = edge1_m_abundance) %>%
     mutate(hop = "edge1")
-
-  e2 <- df %>%
-    dplyr::select(from = compound2_id, to = compound3_id,
-                  reaction = edge2_reaction, KOs = edge2_KOs,
-                  organisms = edge2_organisms,
-                  abundance = edge2_m_abundance) %>%
+  e2 <- df %>% dplyr::select(from = compound2_id, to = compound3_id,
+                               abundance = edge2_m_abundance) %>%
     mutate(hop = "edge2")
 
   edges <- bind_rows(e1, e2) %>%
-    mutate(scaled_abundance = rescale(abundance, to = c(0, 1)))
+    mutate(scaled_abundance = rescale(abundance, to = c(0.3, 1.5)))
 
-  net <- graph_from_data_frame(d = edges, vertices = nodes, directed = TRUE)
+  # Layout via igraph
+  net <- igraph::graph_from_data_frame(d = edges, vertices = nodes, directed = TRUE)
+  layout_mat <- igraph::layout_with_fr(net)
+  coords <- as.data.frame(layout_mat)
+  colnames(coords) <- c("x", "y")
+  coords$compound <- igraph::V(net)$name
 
-  ggraph(net, layout = "fr") +
-    geom_edge_link(aes(width = scaled_abundance, linetype = hop),
-                   arrow = arrow(length = unit(4, "mm"), type = "closed"),
-                   end_cap = circle(1, "mm"),
-                   show.legend = FALSE) +
-    geom_node_point(aes(size = scaled_freq, color = origin)) +
+  nodes <- nodes %>% left_join(coords, by = "compound")
+
+  edge_coords <- edges %>%
+    left_join(coords %>% dplyr::select(compound, x, y),
+              by = c("from" = "compound")) %>%
+    dplyr::rename(x_from = x, y_from = y) %>%
+    left_join(coords %>% dplyr::select(compound, x, y),
+              by = c("to" = "compound")) %>%
+    dplyr::rename(x_to = x, y_to = y)
+
+  ggplot() +
+    geom_segment(data = edge_coords,
+                 aes(x = x_from, y = y_from, xend = x_to, yend = y_to,
+                     linewidth = scaled_abundance, linetype = hop),
+                 arrow = arrow(length = unit(4, "mm"), type = "closed"),
+                 color = "gray40", show.legend = FALSE) +
+    geom_point(data = nodes,
+               aes(x = x, y = y, color = origin, size = scaled_freq)) +
     scale_color_manual(values = color_values) +
     scale_size(guide = "none") +
-    geom_node_label(aes(label = name), repel = TRUE, size = 3) +
+    scale_linewidth(guide = "none") +
+    ggrepel::geom_label_repel(data = nodes,
+                              aes(x = x, y = y, label = compound),
+                              size = 3) +
     theme_void()
 }
 
@@ -163,7 +169,7 @@ plot_compounds_food <- function(df, hmdb,
     print()
 
   fc <- food_compounds %>%
-    rename(compound = compound_id) %>%
+    dplyr::rename(compound = compound_id) %>%
     left_join(hmdb, by = "compound")
 
   for (tax_level in c("taxonomy_super_class", "taxonomy_class")) {
@@ -193,7 +199,7 @@ plot_compounds_genera <- function(df, hmdb,
                   organisms   = all_of(org_col),
                   abundance   = all_of(abun_col)) %>%
     extract_genus("organisms") %>%
-    rename(compound = compound_id) %>%
+    dplyr::rename(compound = compound_id) %>%
     left_join(hmdb, by = "compound")
 
   mc %>%
