@@ -46,10 +46,10 @@ def run_GetFoods() -> None:
     app = root / "src" / "get_foods.py"
     _require_file(app, "get_foods.py")
 
-    subprocess.run(
-        [sys.executable, "-m", "streamlit", "run", str(app)],
-        check=True,
+    result = subprocess.run(
+        [sys.executable, "-m", "streamlit", "run", str(app)] + sys.argv[1:],
     )
+    sys.exit(result.returncode)
 
 
 def run_workflow() -> None:
@@ -58,34 +58,34 @@ def run_workflow() -> None:
     workflow = root / "run_workflow.py"
     _require_file(workflow, "run_workflow.py")
 
-    subprocess.run(
-        [sys.executable, str(workflow)],
-        check=True,
+    result = subprocess.run(
+        [sys.executable, str(workflow)] + sys.argv[1:],
     )
+    sys.exit(result.returncode)
 
 
 def run_DM_GraphComparison() -> None:
-    """Launch the diet-microbe graph-comparison Streamlit app."""
+    """Run DietMicrobe graph comparison script"""
     root = _find_root()
     graph = root / "src" / "GraphComparison.py"
     _require_file(graph, "GraphComparison.py")
 
-    subprocess.run(
-        [sys.executable, "-m", "streamlit", "run", str(graph)],
-        check=True,
+    result = subprocess.run(
+        [sys.executable, str(graph)] + sys.argv[1:],
     )
+    sys.exit(result.returncode)
 
 
 def run_DMHost_GraphComparison() -> None:
-    """Launch the host graph-comparison Streamlit app."""
+    """Run DietMicrobeHost graph comparison script """
     root = _find_root()
     graph = root / "src" / "Host" / "host_GraphComparison.py"
     _require_file(graph, "host_GraphComparison.py")
 
-    subprocess.run(
-        [sys.executable, "-m", "streamlit", "run", str(graph)],
-        check=True,
+    result = subprocess.run(
+        [sys.executable, str(graph)] + sys.argv[1:],
     )
+    sys.exit(result.returncode)
 
 
 # ---------------------------------------------------------------------------
