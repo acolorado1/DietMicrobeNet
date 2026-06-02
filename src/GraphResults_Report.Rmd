@@ -113,7 +113,7 @@ plot_compounds_food <- function(df, hmdb) {
     print()
 
   food_compounds <- food_compounds %>%
-    rename(compound = compound1_id) %>%
+    dplyr::rename(compound = compound1_id) %>%
     left_join(hmdb, by = "compound")
 
   for (tax_level in c("taxonomy_super_class", "taxonomy_class")) {
@@ -154,7 +154,7 @@ plot_compounds_genera <- function(df, hmdb) {
     print()
 
   microbe_compounds <- microbe_compounds %>%
-    rename(compound = compound2_id) %>%
+    dplyr::rename(compound = compound2_id) %>%
     left_join(hmdb, by = "compound")
 
   make_tile <- function(tax_level) {
