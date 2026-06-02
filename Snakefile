@@ -71,7 +71,7 @@ rule all:
           if HOST and not ALL_FOOD else []),
         *([f"{d}/output_host/microbe_compound_report.html" for d in DIRECTORIES]
           if HOST and INCLUDE_ORGS and N_WEIGHTS else []),
-        *([f"{d}/output_host/graph/graph_results.csv" for d in DIRECTORIES]
+        *([f"{d}/output_host/graph/graph_results_report.html" for d in DIRECTORIES]
           if HOST else []),
 
         # Genome outputs
@@ -257,7 +257,7 @@ if FOODB:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python {workflow.basedir}/src/RenderGraphResults_Report.py \
+            python {workflow.basedir}/src/RenderMetabolomeComparison.py \
                 --patterns {input.graph_res} \
                 --metabolome {input.metabolome} \
                 --output {output.output}
@@ -437,7 +437,7 @@ if GENOME:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python {workflow.basedir}/src/RenderGraphResults_Report.py \
+            python {workflow.basedir}/src/RenderMetabolomeComparison.py \
                 --patterns {input.graph_res} \
                 --metabolome {input.metabolome} \
                 --output {output.output}
@@ -610,7 +610,7 @@ if HOST:
         conda: "DMnet_env.yaml"
         shell: 
             """
-            python {workflow.basedir}/src/RenderGraphResults_Report.py \
+            python {workflow.basedir}/src/RenderMetabolomeComparison.py \
                 --patterns {input.graph_res} \
                 --metabolome {input.metabolome} \
                 --output {output.output}
