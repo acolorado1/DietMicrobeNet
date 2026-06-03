@@ -117,7 +117,7 @@ if FOODB:
             f_file = "{dir}/foodb_foods_dataframe.csv"
         output: 
             f_meta = "{dir}/output_fdb/food_meta.csv"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             Rscript src/foodb_proc/comp_FoodDB.R \
@@ -133,7 +133,7 @@ if FOODB:
                 graphs = "{dir}/output_fdb/graph/M_nodes_df.csv" 
             output: 
                 report = "{dir}/output_fdb/food_compound_report.html"
-            conda: "DMnet_env.yaml"
+            conda: "environment.yaml"
             shell:
                 """
                 python {workflow.basedir}/src/foodb_proc/RenderCompoundAnalysis.py \
@@ -162,7 +162,7 @@ if FOODB:
             kos = "{dir}/noquote_ko.txt"
         output: 
             rn_json = "{dir}/output_fdb/AMON_output/rn_dict.json"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             rm -rf {wildcards.dir}/output_fdb/AMON_output
@@ -189,7 +189,7 @@ if FOODB:
             nodes = "{dir}/output_fdb/graph/M_nodes_df.csv",
             edges = "{dir}/output_fdb/graph/M_edges_df.csv",
             summary = "{dir}/output_fdb/graph/network_summary.txt"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             mkdir -p {params.graph_dir}
@@ -209,7 +209,7 @@ if FOODB:
                 edges = "{dir}/output_fdb/graph/M_edges_df.csv"
             output:
                 report = "{dir}/output_fdb/microbe_compound_report.html"
-            conda: "DMnet_env.yaml"
+            conda: "environment.yaml"
             shell:
                 """
                 python {workflow.basedir}/src/RenderCompoundAnalysis_Microbe.py \
@@ -224,7 +224,7 @@ if FOODB:
             edges = "{dir}/output_fdb/graph/M_edges_df.csv"
         output: 
             output = "{dir}/output_fdb/graph/graph_results.csv"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             python src/run_graph.py \
@@ -239,7 +239,7 @@ if FOODB:
             rxn_json = "{dir}/output_fdb/AMON_output/rn_dict.json"
         output: 
             output = "{dir}/output_fdb/graph/graph_results_report.html"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell: 
             """
             python {workflow.basedir}/src/RenderGraphResults_Report.py \
@@ -254,7 +254,7 @@ if FOODB:
             metabolome = "{dir}/metabolome.csv"
         output: 
             output = "{dir}/output_fdb/"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell: 
             """
             python {workflow.basedir}/src/RenderMetabolomeComparison.py \
@@ -294,7 +294,7 @@ if GENOME:
         output: 
             food_meta = "{dir}/output_gen/food_item_kos.csv",
             joined = "{dir}/output_gen/org_KO/joined.txt"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             mkdir -p {params.kos_dir}
@@ -326,7 +326,7 @@ if GENOME:
         output: 
             rn_json = "{dir}/output_gen/AMON_output/rn_dict.json",
             mapper  = "{dir}/output_gen/AMON_output/kegg_mapper.tsv"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             rm -rf {wildcards.dir}/output_gen/AMON_output
@@ -355,7 +355,7 @@ if GENOME:
             nodes = "{dir}/output_gen/graph/WG_nodes_df.csv",
             edges = "{dir}/output_gen/graph/WG_edges_df.csv",
             summary = "{dir}/output_gen/graph/network_summary.txt"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell: 
             """
             mkdir -p {params.graph_dir}
@@ -389,7 +389,7 @@ if GENOME:
                 edges = "{dir}/output_gen/graph/WG_edges_df.csv"
             output:
                 report = "{dir}/output_gen/microbe_compound_report.html"
-            conda: "DMnet_env.yaml"
+            conda: "environment.yaml"
             shell:
                 """
                 python {workflow.basedir}/src/RenderCompoundAnalysis_Microbe.py \
@@ -404,7 +404,7 @@ if GENOME:
             edges = "{dir}/output_gen/graph/WG_edges_df.csv"
         output: 
             output = "{dir}/output_gen/graph/graph_results.csv"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             python src/run_graph.py \
@@ -419,7 +419,7 @@ if GENOME:
             rxn_json = "{dir}/output_gen/AMON_output/rn_dict.json"
         output: 
             output = "{dir}/output_gen/graph/graph_results_report.html"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell: 
             """
             python {workflow.basedir}/src/RenderGraphResults_Report.py \
@@ -434,7 +434,7 @@ if GENOME:
             metabolome = "{dir}/metabolome.csv"
         output: 
             output = "{dir}/output_gen/"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell: 
             """
             python {workflow.basedir}/src/RenderMetabolomeComparison.py \
@@ -464,7 +464,7 @@ if HOST:
             f_file = "{dir}/foodb_foods_dataframe.csv"
         output: 
             f_meta = "{dir}/output_host/food_meta.csv"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             Rscript src/foodb_proc/comp_FoodDB.R \
@@ -480,7 +480,7 @@ if HOST:
                 graphs = "{dir}/output_host/graph/nodes_df.csv" 
             output: 
                 report = "{dir}/output_host/food_compound_report.html"
-            conda: "DMnet_env.yaml"
+            conda: "environment.yaml"
             shell:
                 """
                 python {workflow.basedir}/src/foodb_proc/RenderCompoundAnalysis.py \
@@ -510,7 +510,7 @@ if HOST:
             hkos = "{dir}/noquote_ko_host.txt"
         output: 
             rn_json = "{dir}/output_host/AMON_output/rn_dict.json"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             rm -rf {wildcards.dir}/output_host/AMON_output
@@ -541,7 +541,7 @@ if HOST:
             nodes = "{dir}/output_host/graph/nodes_df.csv",
             edges = "{dir}/output_host/graph/edges_df.csv",
             summary = "{dir}/output_host/graph/network_summary.txt"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             mkdir -p {params.graph_dir}
@@ -562,7 +562,7 @@ if HOST:
                 edges = "{dir}/output_host/graph/edges_df.csv"
             output:
                 report = "{dir}/output_host/microbe_compound_report.html"
-            conda: "DMnet_env.yaml"
+            conda: "environment.yaml"
             shell:
                 """
                 python {workflow.basedir}/src/RenderCompoundAnalysis_Microbe.py \
@@ -577,7 +577,7 @@ if HOST:
             edges = "{dir}/output_host/graph/edges_df.csv"
         output: 
             output = "{dir}/output_host/graph/graph_results.csv"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell:
             """
             python src/Host/host_run_graph.py \
@@ -592,7 +592,7 @@ if HOST:
             rxn_json = "{dir}/output_host/AMON_output/rn_dict.json"
         output: 
             output = "{dir}/output_host/graph/graph_results_report.html"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell: 
             """
             python {workflow.basedir}/src/Host/RenderHostGraphResults_Report.py \
@@ -607,7 +607,7 @@ if HOST:
             metabolome = "{dir}/metabolome.csv"
         output: 
             output = "{dir}/output_host/"
-        conda: "DMnet_env.yaml"
+        conda: "environment.yaml"
         shell: 
             """
             python {workflow.basedir}/src/RenderMetabolomeComparison.py \
