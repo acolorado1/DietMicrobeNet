@@ -13,7 +13,7 @@ This program has been tested on Mac M1 and Ubuntu/linux
 ```
 git clone https://github.com/lozuponelab/DietMicrobeNet.        # clone repo
 cd DietMicrobeNet                                               # move into this project directory
-conda env create -f DMnet_env.yaml                              # create environment
+conda env create -f environment.yaml                            # create environment
 conda activate DietMicrobeNet                                   # activate environment 
 pip install -e .                                                # set up directory structure 
 

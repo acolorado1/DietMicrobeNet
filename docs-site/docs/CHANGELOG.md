@@ -1,5 +1,8 @@
 # Changelog 
 
+## v2.0.1
+- ADD: made relative pathing to directories input possible by fixing bug in report rendering scripts 
+
 ## v2.0.0
 - REMOVE: Whole genome method
 - Only FooDB based analyses will be maintained with diet-microbe or diet-microbe-host patterns being identified

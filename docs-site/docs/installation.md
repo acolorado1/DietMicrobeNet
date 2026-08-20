@@ -17,7 +17,7 @@ cd DietMicrobeNet                                                # move into thi
 Create environment with yaml file provided:
 
 ```
-conda env create -f DMnet_env.yaml                              # create environment
+conda env create -f environment.yaml                            # create environment
 conda activate DietMicrobeNet                                   # activate environment 
 pip install -e .                                                # set up directory structure 
 ```

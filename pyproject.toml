@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dietmicrobenet"
 license = {text = "MIT"}
-version = "2.0.0"
+version = "2.0.1"
 authors = [
     {name = "Angela Sofia Burkhart Colorado", email = "angelasofia.burkhartcolorado@cuanschutz.edu"},
     {name = "Catherine Lozupone", email = "catherine.lozupone@cuanschutz.edu"}
