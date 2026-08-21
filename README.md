@@ -14,7 +14,7 @@ After getting set up, you will have decide if you want to run each step manually
 
 ### HPC Compatibility 
 
-If running on an HPC, you will need to set your cache directory prior to running AMON. You **MUST** call it `AMON_KEGG_DIR`:
+If running on an HPC, you will need to set your cache directory prior to running DM[H]N because of AMON. You **MUST** call it `AMON_KEGG_DIR`:
 
 ```
 export AMON_KEGG_DIR="/path/to/your/custom/cache"
