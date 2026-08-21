@@ -12,6 +12,14 @@ After getting set up, you will have decide if you want to run each step manually
 * For **Snakemake Workflow** (RECOMMENDED) follow [Quick Start Example](https://lozuponelab.github.io/DietMicrobeNet/latest/quickstart/) instructions
 * [Inter-Sample Comparison](https://lozuponelab.github.io/DietMicrobeNet/latest/intersample_comp/) can be performed after manual or snakemake approach
 
+### HPC Compatibility 
+
+If running on an HPC, you will need to set your cache directory prior to running AMON. You **MUST** call it `AMON_KEGG_DIR`:
+
+```
+export AMON_KEGG_DIR="/path/to/your/custom/cache"
+```
+
 ## Outputs
 
 The main outputs of this program will be: 
